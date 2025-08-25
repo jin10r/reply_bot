@@ -45,12 +45,17 @@ const UnifiedMediaManager = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [previewFile, setPreviewFile] = useState(null);
   const [apiEndpoint, setApiEndpoint] = useState("media"); // "media" or "images"
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', null
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef(null);
   
   // Upload form
   const [uploadForm, setUploadForm] = useState({
     file: null,
     fileType: "image",
-    tags: ""
+    tags: "",
+    preview: null
   });
 
   const fetchMediaFiles = async () => {
