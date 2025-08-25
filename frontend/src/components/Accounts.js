@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { 
+  Plus, 
+  Trash2, 
+  Phone, 
+  Key, 
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  User,
+  Smartphone
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
+import { Label } from "./ui/label";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -7,19 +24,15 @@ const API = `${BACKEND_URL}/api`;
 const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showCodeForm, setShowCodeForm] = useState(false);
+  const [showVerifyForm, setShowVerifyForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verificationId, setVerificationId] = useState("");
-  
   const [formData, setFormData] = useState({
     phone: "",
     api_id: "",
-    api_hash: ""
+    api_hash: "",
+    verification_code: ""
   });
-  
-  const [codeData, setCodeData] = useState({
-    code: ""
-  });
+  const [verificationId, setVerificationId] = useState("");
 
   const fetchAccounts = async () => {
     try {
@@ -34,10 +47,8 @@ const Accounts = () => {
     fetchAccounts();
   }, []);
 
-  const handleSendCode = async (e) => {
-    e.preventDefault();
+  const sendCode = async () => {
     setLoading(true);
-    
     try {
       const response = await axios.post(`${API}/accounts/send-code`, {
         phone: formData.phone,
@@ -45,290 +56,316 @@ const Accounts = () => {
         api_hash: formData.api_hash
       });
       
-      setVerificationId(response.data.data.verification_id);
-      setShowCodeForm(true);
-      setShowAddForm(false);
+      if (response.data.success) {
+        setVerificationId(response.data.data.verification_id);
+        setShowAddForm(false);
+        setShowVerifyForm(true);
+      } else {
+        alert("Ошибка: " + response.data.message);
+      }
     } catch (error) {
-      alert("Ошибка отправки кода: " + (error.response?.data?.detail || error.message));
+      alert("Ошибка отправки кода: " + error.response?.data?.detail || error.message);
     }
-    
     setLoading(false);
   };
 
-  const handleVerifyCode = async (e) => {
-    e.preventDefault();
+  const verifyCode = async () => {
     setLoading(true);
-    
     try {
-      await axios.post(`${API}/accounts/verify-code`, {
+      const response = await axios.post(`${API}/accounts/verify-code`, {
         verification_id: verificationId,
-        code: codeData.code
+        code: formData.verification_code
       });
       
-      setShowCodeForm(false);
-      setFormData({ phone: "", api_id: "", api_hash: "" });
-      setCodeData({ code: "" });
-      setVerificationId("");
-      await fetchAccounts();
-      alert("Аккаунт успешно добавлен!");
+      if (response.data.success) {
+        setShowVerifyForm(false);
+        setFormData({ phone: "", api_id: "", api_hash: "", verification_code: "" });
+        setVerificationId("");
+        await fetchAccounts();
+        alert("Аккаунт успешно добавлен!");
+      } else {
+        alert("Ошибка верификации: " + response.data.message);
+      }
     } catch (error) {
-      alert("Ошибка верификации: " + (error.response?.data?.detail || error.message));
+      alert("Ошибка верификации: " + error.response?.data?.detail || error.message);
     }
-    
     setLoading(false);
-  };
-
-  const startAccount = async (accountId) => {
-    try {
-      await axios.post(`${API}/bot/start/${accountId}`);
-      await fetchAccounts();
-    } catch (error) {
-      alert("Ошибка запуска аккаунта: " + (error.response?.data?.detail || error.message));
-    }
-  };
-
-  const stopAccount = async (accountId) => {
-    try {
-      await axios.post(`${API}/bot/stop/${accountId}`);
-      await fetchAccounts();
-    } catch (error) {
-      alert("Ошибка остановки аккаунта: " + (error.response?.data?.detail || error.message));
-    }
   };
 
   const deleteAccount = async (accountId) => {
-    if (!window.confirm("Вы уверены, что хотите удалить этот аккаунт?")) return;
+    if (!window.confirm("Вы уверены, что хотите удалить этот аккаунт?")) {
+      return;
+    }
     
     try {
       await axios.delete(`${API}/accounts/${accountId}`);
       await fetchAccounts();
+      alert("Аккаунт удален");
     } catch (error) {
-      alert("Ошибка удаления аккаунта: " + (error.response?.data?.detail || error.message));
+      alert("Ошибка удаления: " + error.response?.data?.detail || error.message);
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusInfo = (status) => {
     switch (status) {
-      case "connected": return "text-green-700 bg-green-100";
-      case "disconnected": return "text-gray-700 bg-gray-100";
-      case "connecting": return "text-yellow-700 bg-yellow-100";
-      case "error": return "text-red-700 bg-red-100";
-      default: return "text-gray-700 bg-gray-100";
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case "connected": return "Подключен";
-      case "disconnected": return "Отключен";
-      case "connecting": return "Подключается";
-      case "error": return "Ошибка";
-      default: return "Неизвестно";
+      case "connected":
+        return { 
+          text: "Подключен", 
+          variant: "success", 
+          icon: CheckCircle,
+          color: "text-success"
+        };
+      case "connecting":
+        return { 
+          text: "Подключение", 
+          variant: "warning", 
+          icon: Clock,
+          color: "text-warning"
+        };
+      case "disconnected":
+        return { 
+          text: "Отключен", 
+          variant: "secondary", 
+          icon: AlertCircle,
+          color: "text-muted-foreground"
+        };
+      case "error":
+        return { 
+          text: "Ошибка", 
+          variant: "destructive", 
+          icon: AlertCircle,
+          color: "text-destructive"
+        };
+      default:
+        return { 
+          text: "Неизвестно", 
+          variant: "secondary", 
+          icon: AlertCircle,
+          color: "text-muted-foreground"
+        };
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Telegram Аккаунты</h1>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            ➕ Добавить аккаунт
-          </button>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Аккаунты</h1>
+          <p className="text-muted-foreground">
+            Управление Telegram аккаунтами для userbot
+          </p>
         </div>
+        
+        <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
+          <DialogTrigger asChild>
+            <Button size="lg">
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить аккаунт
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Добавить Telegram аккаунт</DialogTitle>
+              <DialogDescription>
+                Введите данные для подключения аккаунта Telegram
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Номер телефона</Label>
+                <Input
+                  id="phone"
+                  placeholder="+7XXXXXXXXXX"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="api_id">API ID</Label>
+                <Input
+                  id="api_id"
+                  placeholder="Получить на my.telegram.org"
+                  value={formData.api_id}
+                  onChange={(e) => setFormData({...formData, api_id: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="api_hash">API Hash</Label>
+                <Input
+                  id="api_hash"
+                  placeholder="Получить на my.telegram.org"
+                  value={formData.api_hash}
+                  onChange={(e) => setFormData({...formData, api_hash: e.target.value})}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={sendCode} disabled={loading}>
+                {loading ? "Отправка..." : "Отправить код"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        {/* Add Account Form */}
-        {showAddForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Добавить Telegram аккаунт</h2>
-              <form onSubmit={handleSendCode}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Номер телефона
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    placeholder="+7XXXXXXXXXX"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    API ID
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.api_id}
-                    onChange={(e) => setFormData({...formData, api_id: e.target.value})}
-                    placeholder="Получите на my.telegram.org"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    API Hash
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.api_hash}
-                    onChange={(e) => setFormData({...formData, api_hash: e.target.value})}
-                    placeholder="Получите на my.telegram.org"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium"
-                  >
-                    {loading ? "Отправка..." : "Отправить код"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </form>
+      {/* Verification Dialog */}
+      <Dialog open={showVerifyForm} onOpenChange={setShowVerifyForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Верификация аккаунта</DialogTitle>
+            <DialogDescription>
+              Введите код подтверждения, отправленный в Telegram
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="verification_code">Код подтверждения</Label>
+              <Input
+                id="verification_code"
+                placeholder="12345"
+                value={formData.verification_code}
+                onChange={(e) => setFormData({...formData, verification_code: e.target.value})}
+              />
             </div>
           </div>
-        )}
+          <DialogFooter>
+            <Button type="submit" onClick={verifyCode} disabled={loading}>
+              {loading ? "Проверка..." : "Подтвердить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Verify Code Form */}
-        {showCodeForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Введите код подтверждения</h2>
-              <p className="text-gray-600 mb-4">
-                Код отправлен на {formData.phone}
-              </p>
-              <form onSubmit={handleVerifyCode}>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Код подтверждения
-                  </label>
-                  <input
-                    type="text"
-                    value={codeData.code}
-                    onChange={(e) => setCodeData({...codeData, code: e.target.value})}
-                    placeholder="12345"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-center text-lg"
-                    required
-                  />
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium"
-                  >
-                    {loading ? "Проверка..." : "Подтвердить"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCodeForm(false);
-                      setShowAddForm(true);
-                    }}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium"
-                  >
-                    Назад
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Accounts List */}
-        <div className="space-y-4">
-          {accounts.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📱</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Нет добавленных аккаунтов
-              </h3>
-              <p className="text-gray-600">
-                Добавьте Telegram аккаунт для начала работы
-              </p>
-            </div>
-          ) : (
-            accounts.map((account) => (
-              <div key={account.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+      {/* Accounts List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {accounts.map((account) => {
+          const statusInfo = getStatusInfo(account.status);
+          const StatusIcon = statusInfo.icon;
+          
+          return (
+            <Card key={account.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-xl">👤</span>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                      <User className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">
-                        {account.first_name} {account.last_name}
-                        {account.username && ` (@${account.username})`}
-                      </h3>
-                      <p className="text-sm text-gray-600">{account.phone}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(account.status)}`}>
-                          {getStatusText(account.status)}
-                        </span>
-                        {account.last_active && (
-                          <span className="text-xs text-gray-500">
-                            Активен: {new Date(account.last_active).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
+                      <CardTitle className="text-base">
+                        {account.first_name && account.last_name 
+                          ? `${account.first_name} ${account.last_name}`
+                          : account.phone
+                        }
+                      </CardTitle>
+                      {account.username && (
+                        <CardDescription>@{account.username}</CardDescription>
+                      )}
                     </div>
                   </div>
-                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteAccount(account.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    {account.status === "connected" ? (
-                      <button
-                        onClick={() => stopAccount(account.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                      >
-                        ⏹️ Остановить
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => startAccount(account.id)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
-                        disabled={!account.session_string}
-                      >
-                        ▶️ Запустить
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteAccount(account.id)}
-                      className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm"
-                    >
-                      🗑️ Удалить
-                    </button>
+                    <Smartphone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {account.phone}
+                    </span>
                   </div>
                 </div>
                 
-                {account.error_message && (
-                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700">
-                      ❌ {account.error_message}
-                    </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
+                    <span className="text-sm font-medium">
+                      {statusInfo.text}
+                    </span>
+                  </div>
+                  <Badge variant={statusInfo.variant}>
+                    {account.status}
+                  </Badge>
+                </div>
+
+                {account.last_active && (
+                  <div className="text-xs text-muted-foreground">
+                    Последняя активность: {new Date(account.last_active).toLocaleString("ru-RU")}
                   </div>
                 )}
-              </div>
-            ))
-          )}
-        </div>
+
+                {account.error_message && (
+                  <div className="text-xs text-destructive bg-destructive/10 p-2 rounded-lg">
+                    {account.error_message}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Empty State */}
+      {accounts.length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <Smartphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <CardTitle className="mb-2">Нет подключенных аккаунтов</CardTitle>
+            <CardDescription className="mb-4">
+              Добавьте первый Telegram аккаунт для начала работы с userbot
+            </CardDescription>
+            <Button onClick={() => setShowAddForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Добавить аккаунт
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instructions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Как добавить аккаунт</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                1
+              </div>
+              <h4 className="font-medium">Получите API ключи</h4>
+              <p className="text-sm text-muted-foreground">
+                Перейдите на <a href="https://my.telegram.org" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">my.telegram.org</a> и создайте приложение
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                2
+              </div>
+              <h4 className="font-medium">Введите данные</h4>
+              <p className="text-sm text-muted-foreground">
+                Укажите номер телефона, API ID и API Hash
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                3
+              </div>
+              <h4 className="font-medium">Подтвердите код</h4>
+              <p className="text-sm text-muted-foreground">
+                Введите код подтверждения из Telegram
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
