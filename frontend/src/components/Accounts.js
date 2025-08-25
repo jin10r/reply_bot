@@ -101,6 +101,29 @@ const Accounts = () => {
     setLoading(false);
   };
 
+  const verify2FA = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API}/accounts/verify-2fa`, {
+        verification_id: verificationId,
+        password: formData.twofa_password
+      });
+      
+      if (response.data.success) {
+        setShow2FAForm(false);
+        setFormData({ phone: "", api_id: "", api_hash: "", verification_code: "", twofa_password: "" });
+        setVerificationId("");
+        await fetchAccounts();
+        alert("Аккаунт успешно добавлен с 2FA!");
+      } else {
+        alert("Ошибка 2FA верификации: " + response.data.message);
+      }
+    } catch (error) {
+      alert("Ошибка 2FA верификации: " + error.response?.data?.detail || error.message);
+    }
+    setLoading(false);
+  };
+
   const deleteAccount = async (accountId) => {
     if (!window.confirm("Вы уверены, что хотите удалить этот аккаунт?")) {
       return;
