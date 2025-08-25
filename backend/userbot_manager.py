@@ -489,6 +489,84 @@ class UserbotManager:
             logger.error(f"Failed to verify phone code: {e}")
             raise
     
+    async def verify_2fa_password(self, verification_id: str, password: str) -> str:
+        """Верификация 2FA пароля и получение session string"""
+        try:
+            # Получаем данные верификации
+            verification_data = await self.db.phone_verifications.find_one({"id": verification_id})
+            if not verification_data:
+                raise ValueError("Verification not found")
+                
+            verification = PhoneVerification(**verification_data)
+            
+            # Проверяем, что код был верифицирован и требуется 2FA
+            if not verification.code_verified or not verification.requires_2fa:
+                raise ValueError("Invalid verification state. Please start the verification process again.")
+            
+            # Проверяем срок действия
+            if datetime.utcnow() > verification.expires_at:
+                if verification_id in self._verification_clients:
+                    try:
+                        await self._verification_clients[verification_id].disconnect()
+                    except:
+                        pass
+                    del self._verification_clients[verification_id]
+                raise ValueError("Verification session expired. Please start the verification process again.")
+            
+            # Получаем существующий клиент
+            if verification_id not in self._verification_clients:
+                raise ValueError("Verification session not found. Please start the verification process again.")
+            
+            client = self._verification_clients[verification_id]
+            
+            # Проверяем, что клиент еще подключен
+            if not client.is_connected:
+                await client.connect()
+            
+            try:
+                # Выполняем 2FA аутентификацию
+                signed_in = await client.check_password(password)
+                logger.info(f"Successfully signed in user with 2FA: {signed_in.user.phone_number}")
+                
+            except Exception as auth_error:
+                # Обработка ошибок 2FA
+                error_msg = str(auth_error).lower()
+                if "password_hash_invalid" in error_msg:
+                    raise ValueError("Invalid 2FA password. Please check and try again.")
+                elif "flood_wait" in error_msg:
+                    raise ValueError("Too many requests. Please wait a few minutes and try again.")
+                else:
+                    logger.error(f"2FA authentication error: {auth_error}")
+                    raise ValueError(f"2FA authentication failed: {auth_error}")
+            
+            # Получаем session string
+            session_string = await client.export_session_string()
+            
+            # Отключаем и очищаем клиент
+            await client.disconnect()
+            if verification_id in self._verification_clients:
+                del self._verification_clients[verification_id]
+            
+            # Помечаем верификацию как завершенную
+            await self.db.phone_verifications.update_one(
+                {"id": verification_id},
+                {"$set": {"is_verified": True, "verified_at": datetime.utcnow()}}
+            )
+            
+            return session_string
+            
+        except Exception as e:
+            # Очистка при ошибке
+            if verification_id in self._verification_clients:
+                try:
+                    await self._verification_clients[verification_id].disconnect()
+                except:
+                    pass
+                del self._verification_clients[verification_id]
+            
+            logger.error(f"Failed to verify 2FA password: {e}")
+            raise
+    
     async def _cleanup_old_verification_clients(self):
         """Очистка старых клиентов верификации"""
         try:
