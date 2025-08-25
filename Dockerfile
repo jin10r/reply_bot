@@ -73,11 +73,9 @@ RUN echo "[supervisord]" > /etc/supervisor/conf.d/supervisord.conf && \
     echo "stderr_logfile=/var/log/supervisor/frontend.err.log" >> /etc/supervisor/conf.d/supervisord.conf
 
 # Create environment file template
-RUN cat > /app/backend/.env.template << 'EOF'
-MONGO_URL=mongodb://mongodb:27017
-DB_NAME=telegram_userbot
-CORS_ORIGINS=*
-EOF
+RUN echo "MONGO_URL=mongodb://mongodb:27017" > /app/backend/.env.template && \
+    echo "DB_NAME=telegram_userbot" >> /app/backend/.env.template && \
+    echo "CORS_ORIGINS=*" >> /app/backend/.env.template
 
 # Create frontend environment template  
 RUN cat > /app/frontend/.env.template << 'EOF'
