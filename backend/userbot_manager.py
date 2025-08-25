@@ -567,6 +567,378 @@ class UserbotManager:
             logger.error(f"Failed to verify 2FA password: {e}")
             raise
     
+    # ENHANCED METHODS FOR NEW CONTENT TYPES
+    
+    async def check_enhanced_rule_conditions(self, message: Message, rule: AutoReplyRule) -> bool:
+        """Расширенная проверка условий правила"""
+        from datetime import time
+        
+        for condition in rule.conditions:
+            if not condition.is_active:
+                continue
+                
+            # Проверка фильтра чатов
+            if condition.condition_type == "chat_filter" and condition.chat_filter:
+                chat_filter = condition.chat_filter
+                
+                # Проверка типа чата
+                if chat_filter.chat_types:
+                    chat_type = self._get_chat_type(message)
+                    if chat_type not in chat_filter.chat_types:
+                        return False
+                
+                # Проверка белого списка чатов
+                if chat_filter.whitelist_chats:
+                    if str(message.chat.id) not in chat_filter.whitelist_chats:
+                        return False
+                
+                # Проверка черного списка чатов
+                if chat_filter.blacklist_chats:
+                    if str(message.chat.id) in chat_filter.blacklist_chats:
+                        return False
+                
+                # Проверка названия чата
+                if chat_filter.chat_title_contains:
+                    chat_title = getattr(message.chat, 'title', '') or ''
+                    if chat_filter.chat_title_contains.lower() not in chat_title.lower():
+                        return False
+                
+                # Проверка количества участников (для групп)
+                if hasattr(message.chat, 'members_count'):
+                    members_count = message.chat.members_count
+                    if chat_filter.min_members and members_count < chat_filter.min_members:
+                        return False
+                    if chat_filter.max_members and members_count > chat_filter.max_members:
+                        return False
+            
+            # Проверка фильтра пользователей
+            elif condition.condition_type == "user_filter":
+                if condition.user_ids:
+                    if str(message.from_user.id) not in condition.user_ids:
+                        return False
+                
+                if condition.usernames:
+                    username = message.from_user.username or ""
+                    if username not in condition.usernames:
+                        return False
+            
+            # Проверка фильтра сообщений
+            elif condition.condition_type == "message_filter":
+                # Проверка ключевых слов
+                if condition.keywords:
+                    message_text = message.text or message.caption or ""
+                    if not any(keyword.lower() in message_text.lower() for keyword in condition.keywords):
+                        return False
+                
+                # Проверка типа сообщения
+                if condition.message_types:
+                    message_type = self._get_message_type(message)
+                    if message_type not in condition.message_types:
+                        return False
+            
+            # Проверка временных рамок
+            elif condition.condition_type == "time_filter":
+                current_time = datetime.utcnow()
+                for time_range in condition.time_ranges:
+                    start_hour = time_range.get("start_hour", 0)
+                    end_hour = time_range.get("end_hour", 23)
+                    days_of_week = time_range.get("days_of_week", [0,1,2,3,4,5,6])
+                    
+                    if current_time.weekday() not in days_of_week:
+                        continue
+                    
+                    current_hour = current_time.hour
+                    if start_hour <= current_hour <= end_hour:
+                        break
+                else:
+                    return False
+                    
+        return True
+    
+    async def execute_enhanced_rule_actions(self, client: Client, message: Message, rule: AutoReplyRule, account_id: str):
+        """Выполнение расширенных действий правила"""
+        try:
+            # Проверка кулдауна
+            if rule.cooldown_seconds > 0:
+                last_triggered = rule.last_triggered
+                if last_triggered:
+                    time_since_last = (datetime.utcnow() - last_triggered).total_seconds()
+                    if time_since_last < rule.cooldown_seconds:
+                        return
+            
+            # Проверка дневного лимита
+            if rule.max_triggers_per_day:
+                today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+                today_triggers = await self.db.bot_activity_logs.count_documents({
+                    "rule_id": rule.id,
+                    "timestamp": {"$gte": today_start}
+                })
+                if today_triggers >= rule.max_triggers_per_day:
+                    return
+            
+            # Обработка условных правил
+            for conditional_rule in rule.conditional_rules:
+                if await self.check_enhanced_rule_conditions(message, AutoReplyRule(
+                    id="temp", name="temp", conditions=[conditional_rule.condition]
+                )):
+                    await self._execute_single_action(client, message, conditional_rule.if_action, rule.id)
+                elif conditional_rule.else_action:
+                    await self._execute_single_action(client, message, conditional_rule.else_action, rule.id)
+                continue
+            
+            # Обработка обычных действий
+            for action in rule.actions:
+                await self._execute_single_action(client, message, action, rule.id)
+            
+            # Обновляем статистику правила
+            await self._update_rule_statistics(rule.id, account_id, True)
+            
+            # Обновляем время последнего срабатывания
+            await self.db.auto_reply_rules.update_one(
+                {"id": rule.id},
+                {
+                    "$set": {"last_triggered": datetime.utcnow()},
+                    "$inc": {"usage_count": 1, "success_count": 1}
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Error executing enhanced rule actions: {e}")
+            await self._update_rule_statistics(rule.id, account_id, False)
+            await self.db.auto_reply_rules.update_one(
+                {"id": rule.id},
+                {"$inc": {"error_count": 1}}
+            )
+    
+    async def _execute_single_action(self, client: Client, message: Message, action, rule_id: str):
+        """Выполнение одного действия"""
+        try:
+            # Добавляем задержку
+            if action.delay_seconds > 0:
+                await asyncio.sleep(action.delay_seconds)
+            
+            # Отправляем медиа контент
+            keyboard = None
+            if action.inline_buttons:
+                keyboard = await self._create_inline_keyboard(action.inline_buttons, rule_id)
+            
+            for media_content in action.media_contents:
+                if media_content.content_type == "text":
+                    text = await self._process_template_text(media_content.text_content or "", message)
+                    sent_message = await client.send_message(
+                        message.chat.id, 
+                        text, 
+                        reply_markup=keyboard,
+                        reply_to_message_id=message.id if action.reply_to_message else None
+                    )
+                
+                elif media_content.content_type == "image":
+                    caption = await self._process_template_text(media_content.caption or "", message)
+                    sent_message = await client.send_photo(
+                        message.chat.id,
+                        media_content.file_path,
+                        caption=caption if caption else None,
+                        reply_markup=keyboard,
+                        reply_to_message_id=message.id if action.reply_to_message else None
+                    )
+                
+                elif media_content.content_type == "sticker":
+                    sent_message = await client.send_sticker(
+                        message.chat.id,
+                        media_content.file_id or media_content.file_path,
+                        reply_to_message_id=message.id if action.reply_to_message else None
+                    )
+                
+                elif media_content.content_type == "emoji":
+                    # Для эмодзи используем обычное текстовое сообщение
+                    sent_message = await client.send_message(
+                        message.chat.id,
+                        media_content.emoji,
+                        reply_to_message_id=message.id if action.reply_to_message else None
+                    )
+                
+                # Автоудаление сообщения
+                if action.delete_after_seconds and hasattr(sent_message, 'id'):
+                    asyncio.create_task(self._delete_message_after_delay(
+                        client, message.chat.id, sent_message.id, action.delete_after_seconds
+                    ))
+            
+            # Добавляем реакции
+            for reaction in action.reactions:
+                try:
+                    await client.send_reaction(message.chat.id, message.id, reaction)
+                except Exception as e:
+                    logger.warning(f"Failed to add reaction {reaction}: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Error executing single action: {e}")
+            raise
+    
+    async def _create_inline_keyboard(self, button_rows, rule_id: str):
+        """Создание инлайн клавиатуры"""
+        from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        
+        keyboard_rows = []
+        for row in button_rows:
+            keyboard_row = []
+            for button in row:
+                if button.button_type == "url":
+                    keyboard_row.append(InlineKeyboardButton(button.text, url=button.url))
+                elif button.button_type == "callback":
+                    callback_data = f"{rule_id}:{button.callback_data}"
+                    keyboard_row.append(InlineKeyboardButton(button.text, callback_data=callback_data))
+            keyboard_rows.append(keyboard_row)
+        
+        return InlineKeyboardMarkup(keyboard_rows)
+    
+    async def _process_template_text(self, template_text: str, message: Message) -> str:
+        """Обработка шаблонного текста с переменными"""
+        if not template_text:
+            return ""
+        
+        variables = {
+            "{user_name}": message.from_user.first_name or "Пользователь",
+            "{user_id}": str(message.from_user.id),
+            "{username}": f"@{message.from_user.username}" if message.from_user.username else "без username",
+            "{chat_title}": getattr(message.chat, 'title', '') or 'Личные сообщения',
+            "{chat_id}": str(message.chat.id),
+            "{time}": datetime.utcnow().strftime("%H:%M"),
+            "{date}": datetime.utcnow().strftime("%d.%m.%Y"),
+            "{message_text}": message.text or message.caption or ""
+        }
+        
+        processed_text = template_text
+        for var, value in variables.items():
+            processed_text = processed_text.replace(var, value)
+        
+        return processed_text
+    
+    async def _delete_message_after_delay(self, client: Client, chat_id: int, message_id: int, delay: int):
+        """Удаление сообщения через указанное время"""
+        await asyncio.sleep(delay)
+        try:
+            await client.delete_messages(chat_id, message_id)
+        except Exception as e:
+            logger.warning(f"Failed to delete message {message_id}: {e}")
+    
+    async def _update_rule_statistics(self, rule_id: str, account_id: str, success: bool):
+        """Обновление статистики правила"""
+        try:
+            today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Обновляем или создаем статистику за день
+            await self.db.rule_statistics.update_one(
+                {"rule_id": rule_id, "date": today},
+                {
+                    "$inc": {
+                        "triggers_count": 1,
+                        "success_count": 1 if success else 0,
+                        "error_count": 0 if success else 1
+                    },
+                    "$setOnInsert": {
+                        "rule_id": rule_id,
+                        "date": today,
+                        "avg_response_time": 0.0,
+                        "most_active_chat": None,
+                        "most_active_user": None
+                    }
+                },
+                upsert=True
+            )
+        except Exception as e:
+            logger.error(f"Error updating rule statistics: {e}")
+    
+    def _get_chat_type(self, message: Message) -> str:
+        """Получение типа чата"""
+        chat_type_map = {
+            "PRIVATE": "private",
+            "GROUP": "group", 
+            "SUPERGROUP": "supergroup",
+            "CHANNEL": "channel"
+        }
+        return chat_type_map.get(message.chat.type.name, "unknown")
+    
+    def _get_message_type(self, message: Message) -> str:
+        """Определение типа сообщения"""
+        if message.text:
+            return "text"
+        elif message.photo:
+            return "photo"
+        elif message.video:
+            return "video"
+        elif message.document:
+            return "document"
+        elif message.audio:
+            return "audio"
+        elif message.voice:
+            return "voice"
+        elif message.sticker:
+            return "sticker"
+        elif message.animation:
+            return "animation"
+        else:
+            return "other"
+    
+    async def process_callback_query(self, callback_query_data: Dict):
+        """Обработка callback запроса от инлайн кнопки"""
+        try:
+            callback_data = callback_query_data.get("data", "")
+            user_id = callback_query_data.get("user_id")
+            chat_id = callback_query_data.get("chat_id")
+            
+            # Парсим callback данные
+            if ":" not in callback_data:
+                return
+            
+            rule_id, action_data = callback_data.split(":", 1)
+            
+            # Найдем правило и выполним callback действие
+            rule_doc = await self.db.auto_reply_rules.find_one({"id": rule_id})
+            if not rule_doc:
+                return
+            
+            rule = AutoReplyRule(**rule_doc)
+            
+            # Найдем соответствующую кнопку и выполним действие
+            for action in rule.actions:
+                for button_row in action.inline_buttons:
+                    for button in button_row:
+                        if button.callback_data == action_data:
+                            await self._execute_callback_action(button, chat_id, user_id)
+                            return
+                            
+        except Exception as e:
+            logger.error(f"Error processing callback query: {e}")
+    
+    async def _execute_callback_action(self, button, chat_id: str, user_id: str):
+        """Выполнение действия callback кнопки"""
+        try:
+            # Найдем активный клиент для отправки ответа
+            client = None
+            for account_id, client_instance in self.clients.items():
+                if client_instance.is_connected:
+                    client = client_instance
+                    break
+            
+            if not client:
+                logger.error("No active client found for callback response")
+                return
+            
+            if button.callback_action == "send_sticker" and button.callback_content:
+                await client.send_sticker(chat_id, button.callback_content)
+            
+            elif button.callback_action == "send_emoji" and button.callback_content:
+                await client.send_message(chat_id, button.callback_content)
+            
+            elif button.callback_action == "send_text" and button.callback_content:
+                await client.send_message(chat_id, button.callback_content)
+            
+            elif button.callback_action == "send_image" and button.callback_content:
+                await client.send_photo(chat_id, button.callback_content)
+                
+        except Exception as e:
+            logger.error(f"Error executing callback action: {e}")
+    
     async def _cleanup_old_verification_clients(self):
         """Очистка старых клиентов верификации"""
         try:
