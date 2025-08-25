@@ -322,7 +322,26 @@ const UnifiedMediaManager = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div 
+      className={`space-y-6 ${isDragging ? 'bg-blue-50' : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 bg-blue-600/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-8 shadow-xl border-2 border-dashed border-blue-500">
+            <div className="text-center">
+              <Upload className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+              <p className="text-lg font-semibold text-blue-600">
+                Отпустите для загрузки файла
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -337,11 +356,32 @@ const UnifiedMediaManager = () => {
           )}
         </div>
         
-        <Button onClick={() => setShowUploadDialog(true)} size="lg">
-          <Upload className="w-4 h-4 mr-2" />
-          Загрузить файл
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Быстрая загрузка
+          </Button>
+          <Button onClick={() => setShowUploadDialog(true)} size="lg">
+            <Upload className="w-4 h-4 mr-2" />
+            Загрузить файл
+          </Button>
+        </div>
       </div>
+
+      {/* Hidden file input for quick upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx"
+        onChange={(e) => {
+          handleFileSelect(e.target.files[0]);
+          setShowUploadDialog(true);
+        }}
+      />
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
