@@ -111,11 +111,17 @@
     file: "server.py, userbot_manager.py, models.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         -working: true
         -agent: "main"
         -comment: "FastAPI backend is running successfully with all Pyrogram dependencies installed. MongoDB connection configured. All API endpoints for accounts, rules, images, settings, and logs are functional."
+        -working: false
+        -agent: "user"
+        -comment: "User reported PHONE_CODE_EXPIRED error during Telegram account authorization - code verification failing"
+        -working: true
+        -agent: "main"
+        -comment: "FIXED: Telegram authorization issue resolved! Key improvements: 1) Fixed session management by maintaining same client throughout auth flow 2) Increased code expiry from 5 to 10 minutes 3) Added proper client cleanup and reuse 4) Enhanced error handling with descriptive messages 5) Added code cleaning (remove spaces/dashes) 6) Better 2FA detection and messaging 7) Improved flood protection handling. The PHONE_CODE_EXPIRED error should now be resolved."
 
 ## frontend:
   - task: "Telegram-inspired UI redesign"
