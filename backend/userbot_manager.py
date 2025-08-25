@@ -389,42 +389,95 @@ class UserbotManager:
     async def verify_phone_code(self, verification_id: str, code: str) -> str:
         """Верификация кода и получение session string"""
         try:
+            # Получаем данные верификации
             verification_data = await self.db.phone_verifications.find_one({"id": verification_id})
             if not verification_data:
                 raise ValueError("Verification not found")
                 
             verification = PhoneVerification(**verification_data)
             
+            # Проверяем срок действия
             if datetime.utcnow() > verification.expires_at:
-                raise ValueError("Verification expired")
+                # Очищаем клиент если истек срок
+                if verification_id in self._verification_clients:
+                    try:
+                        await self._verification_clients[verification_id].disconnect()
+                    except:
+                        pass
+                    del self._verification_clients[verification_id]
+                raise ValueError("Verification code expired. Please request a new code.")
             
-            client = Client(
-                f"temp_{verification.phone}",
-                api_id=verification.api_id,
-                api_hash=verification.api_hash,
-                in_memory=True
-            )
-            
-            await client.connect()
+            # Получаем существующий клиент или создаем новый
+            if verification_id in self._verification_clients:
+                client = self._verification_clients[verification_id]
+                # Проверяем, что клиент еще подключен
+                if not client.is_connected:
+                    await client.connect()
+            else:
+                # Если клиент не найден, создаем новый (fallback)
+                logger.warning(f"Client not found for verification {verification_id}, creating new one")
+                client = Client(
+                    f"temp_{verification_id}",
+                    api_id=verification.api_id,
+                    api_hash=verification.api_hash,
+                    in_memory=True
+                )
+                await client.connect()
+                self._verification_clients[verification_id] = client
             
             try:
-                await client.sign_in(verification.phone, verification.phone_code_hash, code)
+                # Очищаем код от пробелов и лишних символов
+                clean_code = code.strip().replace(" ", "").replace("-", "")
+                
+                # Выполняем аутентификацию
+                signed_in = await client.sign_in(verification.phone, verification.phone_code_hash, clean_code)
+                logger.info(f"Successfully signed in user: {signed_in.user.phone_number}")
+                
             except SessionPasswordNeeded:
-                # Если требуется 2FA пароль, пока не поддерживаем
+                # Если требуется 2FA пароль
                 await client.disconnect()
-                raise ValueError("Two-factor authentication not supported yet")
+                if verification_id in self._verification_clients:
+                    del self._verification_clients[verification_id]
+                raise ValueError("Two-factor authentication detected. Please disable 2FA temporarily or contact support.")
+            except Exception as auth_error:
+                # Улучшенная обработка ошибок аутентификации
+                error_msg = str(auth_error).lower()
+                if "phone_code_expired" in error_msg:
+                    raise ValueError("The verification code has expired. Please request a new code.")
+                elif "phone_code_invalid" in error_msg:
+                    raise ValueError("Invalid verification code. Please check and try again.")
+                elif "phone_code_empty" in error_msg:
+                    raise ValueError("Please enter the verification code.")
+                elif "flood_wait" in error_msg:
+                    raise ValueError("Too many requests. Please wait a few minutes and try again.")
+                else:
+                    logger.error(f"Authentication error: {auth_error}")
+                    raise ValueError(f"Authentication failed: {auth_error}")
             
+            # Получаем session string
             session_string = await client.export_session_string()
+            
+            # Отключаем и очищаем клиент
             await client.disconnect()
+            if verification_id in self._verification_clients:
+                del self._verification_clients[verification_id]
             
             # Помечаем верификацию как завершенную
             await self.db.phone_verifications.update_one(
                 {"id": verification_id},
-                {"$set": {"is_verified": True}}
+                {"$set": {"is_verified": True, "verified_at": datetime.utcnow()}}
             )
             
             return session_string
             
         except Exception as e:
+            # Очистка при ошибке
+            if verification_id in self._verification_clients:
+                try:
+                    await self._verification_clients[verification_id].disconnect()
+                except:
+                    pass
+                del self._verification_clients[verification_id]
+            
             logger.error(f"Failed to verify phone code: {e}")
             raise
