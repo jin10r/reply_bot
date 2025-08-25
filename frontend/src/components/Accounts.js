@@ -80,11 +80,18 @@ const Accounts = () => {
       });
       
       if (response.data.success) {
-        setShowVerifyForm(false);
-        setFormData({ phone: "", api_id: "", api_hash: "", verification_code: "" });
-        setVerificationId("");
-        await fetchAccounts();
-        alert("Аккаунт успешно добавлен!");
+        // Check if 2FA is required
+        if (response.data.data?.requires_2fa) {
+          setShowVerifyForm(false);
+          setShow2FAForm(true);
+        } else {
+          // Account created successfully without 2FA
+          setShowVerifyForm(false);
+          setFormData({ phone: "", api_id: "", api_hash: "", verification_code: "", twofa_password: "" });
+          setVerificationId("");
+          await fetchAccounts();
+          alert("Аккаунт успешно добавлен!");
+        }
       } else {
         alert("Ошибка верификации: " + response.data.message);
       }
