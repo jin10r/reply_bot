@@ -340,14 +340,23 @@ class UserbotManager:
         )
 
     # Методы для аутентификации
+    # Dictionary to store temporary clients during verification process
+    _verification_clients = {}
+    
     async def send_code_request(self, phone: str, api_id: int, api_hash: str) -> str:
         """Отправка запроса на код подтверждения"""
         try:
-            client = Client(f"temp_{phone}", api_id=api_id, api_hash=api_hash, in_memory=True)
+            verification_id = str(uuid.uuid4())
+            client_name = f"temp_{verification_id}"
+            
+            # Create client that we'll reuse for verification
+            client = Client(client_name, api_id=api_id, api_hash=api_hash, in_memory=True)
             await client.connect()
             
             sent_code = await client.send_code(phone)
-            verification_id = str(uuid.uuid4())
+            
+            # Store client for later use in verification
+            self._verification_clients[verification_id] = client
             
             # Сохраняем информацию о верификации
             verification = PhoneVerification(
@@ -356,16 +365,25 @@ class UserbotManager:
                 api_id=api_id,
                 api_hash=api_hash,
                 phone_code_hash=sent_code.phone_code_hash,
-                expires_at=datetime.utcnow() + timedelta(minutes=5)
+                expires_at=datetime.utcnow() + timedelta(minutes=10)  # Увеличил время до 10 минут
             )
             
             await self.db.phone_verifications.insert_one(verification.dict())
-            await client.disconnect()
+            
+            # Clean up old verification clients (older than 15 minutes)
+            await self._cleanup_old_verification_clients()
             
             return verification_id
             
         except Exception as e:
             logger.error(f"Failed to send code request: {e}")
+            # Clean up client if something went wrong
+            if verification_id in self._verification_clients:
+                try:
+                    await self._verification_clients[verification_id].disconnect()
+                except:
+                    pass
+                del self._verification_clients[verification_id]
             raise
     
     async def verify_phone_code(self, verification_id: str, code: str) -> str:
