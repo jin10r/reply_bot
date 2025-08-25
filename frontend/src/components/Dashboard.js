@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [botStatus, setBotStatus] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const fetchBotStatus = async () => {
     try {
