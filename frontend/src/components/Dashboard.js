@@ -337,19 +337,35 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col space-y-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col space-y-2"
+              onClick={() => navigate('/accounts')}
+            >
               <Users className="w-6 h-6" />
               <span className="text-sm">Аккаунты</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col space-y-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col space-y-2"
+              onClick={() => navigate('/rules')}
+            >
               <Zap className="w-6 h-6" />
               <span className="text-sm">Правила</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col space-y-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col space-y-2"
+              onClick={() => navigate('/media')}
+            >
               <Image className="w-6 h-6" />
-              <span className="text-sm">Картинки</span>
+              <span className="text-sm">Медиафайлы</span>
             </Button>
-            <Button variant="outline" className="h-20 flex-col space-y-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex-col space-y-2"
+              onClick={() => navigate('/logs')}
+            >
               <Activity className="w-6 h-6" />
               <span className="text-sm">Логи</span>
             </Button>
