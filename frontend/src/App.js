@@ -81,16 +81,47 @@ const Navigation = ({ darkMode, setDarkMode }) => {
         {/* Theme toggle */}
         <button
           onClick={() => setDarkMode(!darkMode)}
-          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors text-sm text-sidebar-foreground"
+          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-accent transition-colors text-sm text-sidebar-foreground mb-2"
         >
-          <span>Тема оформления</span>
+          <span>{t('theme.toggle')}</span>
           <div className="flex items-center space-x-2">
             <span className="text-xs text-muted-foreground">
-              {darkMode ? 'Темная' : 'Светлая'}
+              {darkMode ? t('theme.dark') : t('theme.light')}
             </span>
             {darkMode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </div>
         </button>
+        
+        {/* Language selector */}
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground px-2">{t('language.select')}</div>
+          <Select value={currentLanguage} onValueChange={changeLanguage}>
+            <SelectTrigger className="w-full h-8">
+              <SelectValue>
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-3 h-3" />
+                  <span className="text-xs">
+                    {currentLanguage === 'ru' ? t('language.russian') : t('language.english')}
+                  </span>
+                </div>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ru">
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-3 h-3" />
+                  <span>{t('language.russian')}</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="en">
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-3 h-3" />
+                  <span>{t('language.english')}</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       {/* Navigation items */}
