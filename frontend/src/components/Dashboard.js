@@ -87,35 +87,35 @@ const Dashboard = () => {
     switch (status) {
       case "running":
         return {
-          text: "Активен",
+          text: t('dashboard.running'),
           variant: "success",
           icon: CheckCircle,
           color: "text-success"
         };
       case "stopped":
         return {
-          text: "Остановлен", 
+          text: t('dashboard.stopped'), 
           variant: "secondary",
           icon: Square,
           color: "text-muted-foreground"
         };
       case "starting":
         return {
-          text: "Запускается",
+          text: t('dashboard.starting'),
           variant: "warning",
           icon: Clock,
           color: "text-warning"
         };
       case "error":
         return {
-          text: "Ошибка",
+          text: t('dashboard.error'),
           variant: "destructive",
           icon: XCircle,
           color: "text-destructive"
         };
       default:
         return {
-          text: "Неизвестно",
+          text: t('dashboard.unknown'),
           variant: "secondary",
           icon: AlertCircle,
           color: "text-muted-foreground"
