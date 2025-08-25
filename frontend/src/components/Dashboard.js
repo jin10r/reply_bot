@@ -131,9 +131,9 @@ const Dashboard = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
           <p className="text-muted-foreground">
-            Управление Telegram userbot и мониторинг активности
+            {t('dashboard.subtitle')}
           </p>
         </div>
         
