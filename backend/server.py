@@ -88,11 +88,32 @@ userbot_manager = UserbotManager(db)
 # Create the main app without a prefix
 app = FastAPI(title="Telegram Userbot Manager", version="1.0.0")
 
+# Add GZip compression middleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
 # Serve static files
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
+async def create_database_indexes():
+    """Create database indexes for better performance"""
+    try:
+        # Indexes for frequently queried collections
+        await db.telegram_accounts.create_index("phone")
+        await db.telegram_accounts.create_index("status")
+        await db.auto_reply_rules.create_index([("is_active", 1), ("priority", -1)])
+        await db.auto_reply_rules.create_index("account_id")
+        await db.media_files.create_index([("is_active", 1), ("file_type", 1)])
+        await db.media_files.create_index("tags")
+        await db.bot_activity_logs.create_index([("timestamp", -1), ("rule_id", 1)])
+        await db.phone_verifications.create_index("expires_at", expireAfterSeconds=0)
+        await db.rule_statistics.create_index([("rule_id", 1), ("date", -1)])
+        await db.system_notifications.create_index([("is_read", 1), ("created_at", -1)])
+        logger.info("Database indexes created successfully")
+    except Exception as e:
+        logger.warning(f"Could not create some database indexes: {e}")
 
 # Original endpoints
 @api_router.get("/")
