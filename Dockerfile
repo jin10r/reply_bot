@@ -1,5 +1,5 @@
 # Multi-stage build for production-ready Telegram Userbot Manager
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 # Set working directory for frontend
 WORKDIR /app/frontend
