@@ -75,11 +75,23 @@ async def send_verification_code(account_data: TelegramAccountCreate):
         )
         return APIResponse(
             success=True,
-            message="Verification code sent",
+            message="Verification code sent successfully. Please check your Telegram app.",
             data={"verification_id": verification_id}
         )
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        error_message = str(e)
+        # Улучшенная обработка ошибок
+        if "phone_number_invalid" in error_message.lower():
+            error_message = "Invalid phone number. Please use international format (+1234567890)."
+        elif "api_id_invalid" in error_message.lower():
+            error_message = "Invalid API ID. Please check your Telegram app credentials."
+        elif "api_hash_invalid" in error_message.lower():
+            error_message = "Invalid API Hash. Please check your Telegram app credentials."
+        elif "flood_wait" in error_message.lower():
+            error_message = "Too many requests. Please wait a few minutes and try again."
+        
+        logger.error(f"Send code error: {e}")
+        raise HTTPException(status_code=400, detail=f"Ошибка отправки кода: {error_message}")
 
 @api_router.post("/accounts/verify-code")
 async def verify_code(verification_data: PhoneVerificationCode):
@@ -111,12 +123,14 @@ async def verify_code(verification_data: PhoneVerificationCode):
         
         return APIResponse(
             success=True,
-            message="Account created successfully",
+            message="Account created successfully! You can now use your Telegram bot.",
             data=account.dict()
         )
         
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        error_message = str(e)
+        logger.error(f"Verify code error: {e}")
+        raise HTTPException(status_code=400, detail=f"Ошибка верификации: {error_message}")
 
 @api_router.get("/accounts", response_model=List[TelegramAccount])
 async def get_accounts():
