@@ -10,13 +10,17 @@ import {
   Settings as SettingsIcon,
   Moon,
   Sun,
-  Bot
+  Bot,
+  Upload,
+  Layers
 } from "lucide-react";
 import { cn } from "./lib/utils";
 import Dashboard from "./components/Dashboard";
 import Accounts from "./components/Accounts";
 import Rules from "./components/Rules";
+import EnhancedRules from "./components/EnhancedRules";
 import Images from "./components/Images";
+import MediaManager from "./components/MediaManager";
 import Logs from "./components/Logs";
 import Settings from "./components/Settings";
 
