@@ -7,7 +7,7 @@ import {
   Zap, 
   Image, 
   FileText, 
-  Settings,
+  Settings as SettingsIcon,
   Moon,
   Sun,
   Bot
