@@ -249,7 +249,7 @@ const Dashboard = () => {
           {/* Response Statistics */}
           <Card>
             <CardHeader>
-              <CardTitle>Статистика ответов</CardTitle>
+              <CardTitle>{t('dashboard.responseStats')}</CardTitle>
               <CardDescription>
                 Общая статистика автоответов системы
               </CardDescription>
@@ -258,15 +258,15 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Всего ответов</span>
+                    <span className="text-sm text-muted-foreground">{t('dashboard.totalResponses')}</span>
                     <span className="font-medium">{stats.total_responses}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-success">Успешных</span>
+                    <span className="text-sm text-success">{t('dashboard.successfulResponses')}</span>
                     <span className="font-medium text-success">{stats.successful_responses}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-destructive">Ошибок</span>
+                    <span className="text-sm text-destructive">{t('dashboard.failedResponses')}</span>
                     <span className="font-medium text-destructive">{stats.failed_responses}</span>
                   </div>
                 </div>
