@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { 
   Upload, 
@@ -15,7 +15,12 @@ import {
   X,
   File,
   Tag,
-  Calendar
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Music,
+  Video,
+  FileText
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
