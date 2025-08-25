@@ -50,17 +50,18 @@ const ThemeProvider = ({ children }) => {
   );
 };
 
-// Navigation component with Telegram-style sidebar
+//Navigation component with Telegram-style sidebar
 const Navigation = ({ darkMode, setDarkMode }) => {
   const location = useLocation();
+  const { t, currentLanguage, changeLanguage, availableLanguages } = useTranslation();
   
   const navItems = [
-    { path: "/", label: "Dashboard", icon: Home, description: "Главная панель" },
-    { path: "/accounts", label: "Аккаунты", icon: Users, description: "Управление аккаунтами" },
-    { path: "/rules", label: "Правила", icon: Zap, description: "Автоответы и гибкие правила" },
-    { path: "/media", label: "Медиафайлы", icon: Upload, description: "Управление медиафайлами" },
-    { path: "/logs", label: "Логи", icon: FileText, description: "История активности" },
-    { path: "/settings", label: "Настройки", icon: SettingsIcon, description: "Конфигурация" }
+    { path: "/", label: t('navigation.dashboard'), icon: Home, description: "Главная панель" },
+    { path: "/accounts", label: t('navigation.accounts'), icon: Users, description: "Управление аккаунтами" },
+    { path: "/rules", label: t('navigation.rules'), icon: Zap, description: "Автоответы и гибкие правила" },
+    { path: "/media", label: t('navigation.media'), icon: Upload, description: "Управление медиафайлами" },
+    { path: "/logs", label: t('navigation.logs'), icon: FileText, description: "История активности" },
+    { path: "/settings", label: t('navigation.settings'), icon: SettingsIcon, description: "Конфигурация" }
   ];
 
   return (
