@@ -274,7 +274,7 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-muted-foreground">Успешность</span>
+                      <span className="text-xs text-muted-foreground">{t('dashboard.successRate')}</span>
                       <span className="text-xs font-medium">{stats.success_rate.toFixed(1)}%</span>
                     </div>
                     <Progress value={stats.success_rate} className="h-2" />
