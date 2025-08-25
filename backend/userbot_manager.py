@@ -11,7 +11,9 @@ from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 from models import (
     TelegramAccount, AutoReplyRule, BotImage, BotSettings, BotActivityLog,
-    AccountStatus, BotStatus, PhoneVerification, TwoFactorAuth
+    AccountStatus, BotStatus, PhoneVerification, TwoFactorAuth,
+    MediaContent, InlineButton, ReplyAction, ReplyCondition, ChatFilter,
+    RuleStatistics, CallbackQuery
 )
 
 logger = logging.getLogger(__name__)
