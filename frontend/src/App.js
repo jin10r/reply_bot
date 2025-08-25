@@ -17,10 +17,8 @@ import {
 import { cn } from "./lib/utils";
 import Dashboard from "./components/Dashboard";
 import Accounts from "./components/Accounts";
-import Rules from "./components/Rules";
-import EnhancedRules from "./components/EnhancedRules";
-import Images from "./components/Images";
-import MediaManager from "./components/MediaManager";
+import UnifiedRules from "./components/UnifiedRules";
+import UnifiedMediaManager from "./components/UnifiedMediaManager";
 import Logs from "./components/Logs";
 import Settings from "./components/Settings";
 
