@@ -114,11 +114,20 @@ const UnifiedMediaManager = () => {
 
   const handleFileUpload = async () => {
     if (!uploadForm.file) {
-      alert("Выберите файл для загрузки");
+      setUploadError("Выберите файл для загрузки");
+      return;
+    }
+
+    // Проверяем размер файла (максимум 10MB)
+    if (uploadForm.file.size > 10 * 1024 * 1024) {
+      setUploadError("Размер файла не должен превышать 10MB");
       return;
     }
 
     try {
+      setUploadStatus(null);
+      setUploadError("");
+      
       const formData = new FormData();
       formData.append("file", uploadForm.file);
       
@@ -142,13 +151,16 @@ const UnifiedMediaManager = () => {
       });
 
       if (response.data.success !== false) {
-        alert("Файл успешно загружен!");
-        await fetchMediaFiles();
-        resetUploadForm();
+        setUploadStatus("success");
+        setTimeout(async () => {
+          await fetchMediaFiles();
+          resetUploadForm();
+        }, 1500);
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Ошибка загрузки файла: " + (error.response?.data?.detail || error.message));
+      setUploadStatus("error");
+      setUploadError(error.response?.data?.detail || error.message || "Ошибка загрузки файла");
     }
   };
 
@@ -156,10 +168,113 @@ const UnifiedMediaManager = () => {
     setUploadForm({
       file: null,
       fileType: "image",
-      tags: ""
+      tags: "",
+      preview: null
     });
     setUploadProgress(0);
+    setUploadStatus(null);
+    setUploadError("");
     setShowUploadDialog(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileSelect = (file) => {
+    if (!file) return;
+
+    // Автоопределение типа файла
+    let detectedType = "document";
+    if (file.type.startsWith("image/")) {
+      detectedType = "image";
+    } else if (file.type.startsWith("audio/")) {
+      detectedType = "audio";
+    } else if (file.type.startsWith("video/")) {
+      detectedType = "video";
+    }
+
+    // Создаем превью для изображений
+    let preview = null;
+    if (file.type.startsWith("image/")) {
+      preview = URL.createObjectURL(file);
+    }
+
+    setUploadForm({
+      ...uploadForm,
+      file,
+      fileType: detectedType,
+      preview
+    });
+    setUploadError("");
+  };
+
+  // Drag & Drop функции
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    if (droppedFiles.length > 0) {
+      handleFileSelect(droppedFiles[0]);
+      if (!showUploadDialog) {
+        setShowUploadDialog(true);
+      }
+    }
+  };
+
+  const getFileTypeIcon = (fileType) => {
+    switch (fileType) {
+      case "image":
+        return <Image className="w-5 h-5" />;
+      case "sticker":
+        return <FileImage className="w-5 h-5" />;
+      case "audio":
+        return <Music className="w-5 h-5" />;
+      case "video":
+        return <Video className="w-5 h-5" />;
+      case "document":
+        return <FileText className="w-5 h-5" />;
+      default:
+        return <File className="w-5 h-5" />;
+    }
+  };
+
+  const getFileTypeColor = (fileType) => {
+    switch (fileType) {
+      case "image":
+        return "bg-blue-500";
+      case "sticker":
+        return "bg-purple-500";
+      case "audio":
+        return "bg-green-500";
+      case "video":
+        return "bg-red-500";
+      case "document":
+        return "bg-gray-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
+  const getSupportedFormats = (fileType) => {
+    const formats = {
+      image: "JPG, PNG, GIF, WebP, SVG",
+      sticker: "WebP, TGS",
+      audio: "MP3, OGG, WAV, M4A",
+      video: "MP4, WebM, MOV, AVI",
+      document: "PDF, TXT, DOC, DOCX"
+    };
+    return formats[fileType] || "Различные форматы";
   };
 
   const deleteFile = async (fileId) => {
