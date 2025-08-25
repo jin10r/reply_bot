@@ -174,7 +174,9 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/rules" element={<Rules />} />
+                <Route path="/enhanced-rules" element={<EnhancedRules />} />
                 <Route path="/images" element={<Images />} />
+                <Route path="/media" element={<MediaManager />} />
                 <Route path="/logs" element={<Logs />} />
                 <Route path="/settings" element={<Settings />} />
               </Routes>
