@@ -1,15 +1,17 @@
 import requests
 import sys
 import json
+import time
 from datetime import datetime
 from typing import Dict, Any
 
 class TelegramUserbotAPITester:
-    def __init__(self, base_url="https://pyro-image-bot.preview.emergentagent.com"):
+    def __init__(self, base_url="https://docker-reset.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.verification_id = None
 
     def log_test(self, name: str, success: bool, details: str = ""):
         """Log test result"""
