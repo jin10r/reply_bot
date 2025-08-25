@@ -130,33 +130,66 @@ class ConditionalRule(BaseModel):
 
 
 class AutoReplyRule(BaseModel):
+    """Расширенное правило автоответа"""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    conditions: List[ReplyCondition]
-    actions: List[ReplyAction]
+    description: Optional[str] = None
+    
+    # Условия и действия
+    conditions: List[ReplyCondition] = []
+    actions: List[ReplyAction] = []
+    
+    # Условные правила
+    conditional_rules: List[ConditionalRule] = []
+    
+    # Шаблоны
+    templates: List[str] = []  # ID шаблонов
+    
+    # Настройки
     is_active: bool = True
-    priority: int = 0  # приоритет выполнения (больше = выше приоритет)
-    account_id: Optional[str] = None  # привязка к конкретному аккаунту
+    priority: int = 0
+    max_triggers_per_day: Optional[int] = None  # ограничение срабатываний
+    cooldown_seconds: int = 0  # кулдаун между срабатываниями
+    
+    # Привязка
+    account_id: Optional[str] = None
+    
+    # Метаданные
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    usage_count: int = 0  # счетчик использований
+    usage_count: int = 0
+    last_triggered: Optional[datetime] = None
+    
+    # Статистика
+    success_count: int = 0  # успешных срабатываний
+    error_count: int = 0  # ошибок при срабатывании
 
 
 class AutoReplyRuleCreate(BaseModel):
     name: str
-    conditions: List[ReplyCondition]
-    actions: List[ReplyAction]
+    description: Optional[str] = None
+    conditions: List[ReplyCondition] = []
+    actions: List[ReplyAction] = []
+    conditional_rules: List[ConditionalRule] = []
+    templates: List[str] = []
     is_active: bool = True
     priority: int = 0
+    max_triggers_per_day: Optional[int] = None
+    cooldown_seconds: int = 0
     account_id: Optional[str] = None
 
 
 class AutoReplyRuleUpdate(BaseModel):
     name: Optional[str] = None
+    description: Optional[str] = None
     conditions: Optional[List[ReplyCondition]] = None
     actions: Optional[List[ReplyAction]] = None
+    conditional_rules: Optional[List[ConditionalRule]] = None
+    templates: Optional[List[str]] = None
     is_active: Optional[bool] = None
     priority: Optional[int] = None
+    max_triggers_per_day: Optional[int] = None
+    cooldown_seconds: Optional[int] = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
