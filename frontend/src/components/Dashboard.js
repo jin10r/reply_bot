@@ -311,13 +311,13 @@ const Dashboard = () => {
                     {botStatus.daily_response_count >= botStatus.max_daily_responses ? (
                       <>
                         <XCircle className="w-4 h-4 text-destructive" />
-                        <span className="text-sm text-destructive">Лимит достигнут</span>
+                        <span className="text-sm text-destructive">{t('dashboard.limitReached')}</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle className="w-4 h-4 text-success" />
                         <span className="text-sm text-success">
-                          Осталось: {botStatus.max_daily_responses - botStatus.daily_response_count} ответов
+                          {t('dashboard.remaining', { count: botStatus.max_daily_responses - botStatus.daily_response_count })}
                         </span>
                       </>
                     )}
