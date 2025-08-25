@@ -111,7 +111,7 @@ class UserbotManager:
         return results
     
     async def process_incoming_message(self, client: Client, message: Message, account_id: str):
-        """Обработка входящего сообщения"""
+        """Обработка входящего сообщения с расширенным функционалом"""
         try:
             # Проверяем общие настройки бота
             settings = await self.get_bot_settings()
@@ -129,14 +129,26 @@ class UserbotManager:
             # Получаем правила автоответов
             rules = await self.get_active_rules(account_id)
             
-            # Находим подходящее правило
-            matching_rule = await self.find_matching_rule(message, rules)
+            # Находим подходящее правило с расширенной проверкой
+            matching_rule = await self.find_enhanced_matching_rule(message, rules)
             
             if matching_rule:
-                await self.execute_rule_actions(client, message, matching_rule, account_id)
+                await self.execute_enhanced_rule_actions(client, message, matching_rule, account_id)
                 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
+    
+    async def find_enhanced_matching_rule(self, message: Message, rules: List[AutoReplyRule]) -> Optional[AutoReplyRule]:
+        """Поиск подходящего правила с расширенными условиями"""
+        # Сортируем правила по приоритету
+        sorted_rules = sorted(rules, key=lambda x: x.priority, reverse=True)
+        
+        for rule in sorted_rules:
+            # Используем расширенную проверку условий
+            if await self.check_enhanced_rule_conditions(message, rule):
+                return rule
+                
+        return None
     
     async def find_matching_rule(self, message: Message, rules: List[AutoReplyRule]) -> Optional[AutoReplyRule]:
         """Поиск подходящего правила для срабатывания"""
