@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # MongoDB database
+  mongodb:
+    image: mongo:7.0
+    container_name: telegram_userbot_db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    environment:
+      MONGO_INITDB_DATABASE: telegram_userbot
+    networks:
+      - userbot_network
+
+  # Main application
+  userbot_app:
+    build: .
+    container_name: telegram_userbot_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"   # Frontend
+      - "8001:8001"   # Backend API
+    volumes:
+      - ./uploads:/app/backend/uploads
+      - ./data:/app/data
+      - ./logs:/var/log/supervisor
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017
+      - DB_NAME=telegram_userbot
+      - CORS_ORIGINS=*
+      - REACT_APP_BACKEND_URL=http://localhost:8001
+    depends_on:
+      - mongodb
+    networks:
+      - userbot_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  userbot_network:
+    driver: bridge
+
+# Additional services (optional)
+# Uncomment if you need Redis for caching or task queue
+# redis:
+#   image: redis:7-alpine
+#   container_name: telegram_userbot_redis
+#   restart: unless-stopped
+#   ports:
+#     - "6379:6379"
+#   volumes:
+#     - redis_data:/data
+#   networks:
+#     - userbot_network
+
+# Nginx reverse proxy (optional)
+# nginx:
+#   image: nginx:alpine
+#   container_name: telegram_userbot_nginx
+#   restart: unless-stopped
+#   ports:
+#     - "80:80"
+#     - "443:443"
+#   volumes:
+#     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#     - ./ssl:/etc/nginx/ssl:ro
+#   depends_on:
+#     - userbot_app
+#   networks:
+#     - userbot_network
