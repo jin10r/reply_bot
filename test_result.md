@@ -144,10 +144,10 @@
 
 ## test_plan:
   current_focus:
-    - "UI/UX design complete"
-    - "Telegram-style interface fully implemented"
+    - "Telegram authorization fix - PHONE_CODE_EXPIRED resolution" 
+    - "Backend authentication flow improvements"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 ## agent_communication:
