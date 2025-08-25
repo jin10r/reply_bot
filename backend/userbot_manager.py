@@ -26,6 +26,16 @@ class UserbotManager:
         self.is_running = False
         self.tasks: List[asyncio.Task] = []
         
+        # Connection and session management
+        self._verification_clients: Dict[str, Client] = {}
+        self._connection_pool_size = 10
+        self._bulk_operation_batch_size = 100
+        
+        # Performance optimization caches
+        self._rules_cache: Dict[str, List[AutoReplyRule]] = {}
+        self._rules_cache_ttl: Dict[str, datetime] = {}
+        self._cache_ttl_seconds = 300  # 5 minutes
+        
     async def start_userbot(self, account_id: str) -> bool:
         """Запуск userbot для конкретного аккаунта"""
         try:
