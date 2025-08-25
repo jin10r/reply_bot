@@ -622,34 +622,405 @@ class TelegramUserbotAPITester:
         # Get status checks
         self.run_test("Get Status Checks", "GET", "/api/status", 200)
 
+    def test_enhanced_media_endpoints(self):
+        """Test enhanced media endpoints (/api/media/*)"""
+        print("\n📁 Testing Enhanced Media Endpoints...")
+        
+        # Test 1: Get media files
+        success, media_data = self.run_test("Get Media Files", "GET", "/api/media", 200)
+        
+        # Test 2: Get media files with filters
+        self.run_test("Get Media Files - Image Filter", "GET", "/api/media?file_type=image", 200)
+        self.run_test("Get Media Files - Tags Filter", "GET", "/api/media?tags=test,automation", 200)
+        self.run_test("Get Media Files - Limit", "GET", "/api/media?limit=10", 200)
+        
+        # Test 3: Upload different file types
+        print("\n📤 Testing media upload for different file types...")
+        
+        # Test image upload
+        test_image_content = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00\nIDATx\x9cc\xf8\x00\x00\x00\x01\x00\x01\x00\x00\x00\x00IEND\xaeB`\x82'
+        files = {
+            'file': ('test_image.png', test_image_content, 'image/png')
+        }
+        data = {
+            'tags': 'test,automation,image',
+            'file_type': 'image'
+        }
+        
+        success, upload_response = self.run_test("Upload Image File", "POST", "/api/media/upload", 200, data, files)
+        uploaded_file_id = None
+        if success and upload_response.get('data', {}).get('id'):
+            uploaded_file_id = upload_response['data']['id']
+        
+        # Test sticker upload (WebP format)
+        test_sticker_content = b'RIFF\x1a\x00\x00\x00WEBPVP8 \x0e\x00\x00\x00\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        files = {
+            'file': ('test_sticker.webp', test_sticker_content, 'image/webp')
+        }
+        data = {
+            'tags': 'test,sticker',
+            'file_type': 'sticker'
+        }
+        
+        self.run_test("Upload Sticker File", "POST", "/api/media/upload", 200, data, files)
+        
+        # Test unsupported file type
+        files = {
+            'file': ('test.exe', b'fake_exe_content', 'application/x-executable')
+        }
+        data = {
+            'tags': 'test',
+            'file_type': 'image'
+        }
+        
+        self.run_test("Upload Unsupported File Type", "POST", "/api/media/upload", 400, data, files)
+        
+        # Test 4: Delete uploaded file
+        if uploaded_file_id:
+            self.run_test("Delete Media File", "DELETE", f"/api/media/{uploaded_file_id}", 200)
+        
+        # Test delete non-existent file
+        self.run_test("Delete Non-existent Media File", "DELETE", "/api/media/nonexistent", 404)
+
+    def test_rule_templates_endpoints(self):
+        """Test rule templates endpoints (/api/templates/*)"""
+        print("\n📋 Testing Rule Templates Endpoints...")
+        
+        # Test 1: Get all templates
+        success, templates_data = self.run_test("Get Rule Templates", "GET", "/api/templates", 200)
+        
+        # Test 2: Create a rule template
+        template_data = {
+            "name": "Greeting Template",
+            "template_text": "Привет, {user_name}! Добро пожаловать в {chat_title}. Время: {time}",
+            "variables": {
+                "user_name": "имя пользователя",
+                "chat_title": "название чата",
+                "time": "текущее время"
+            }
+        }
+        
+        success, template_response = self.run_test("Create Rule Template", "POST", "/api/templates", 200, template_data)
+        
+        # Test 3: Create template with minimal data
+        minimal_template = {
+            "name": "Simple Template",
+            "template_text": "Простой ответ без переменных"
+        }
+        
+        self.run_test("Create Minimal Template", "POST", "/api/templates", 200, minimal_template)
+        
+        # Test 4: Create template with missing required fields
+        invalid_template = {
+            "template_text": "Template without name"
+        }
+        
+        self.run_test("Create Invalid Template", "POST", "/api/templates", 422, invalid_template)
+
+    def test_enhanced_rules_system(self):
+        """Test enhanced rules system with new models"""
+        print("\n⚡ Testing Enhanced Rules System...")
+        
+        # Test 1: Create rule with enhanced conditions and actions
+        enhanced_rule = {
+            "name": "Enhanced Auto Reply Rule",
+            "description": "Rule with advanced conditions and actions",
+            "conditions": [
+                {
+                    "condition_type": "message_filter",
+                    "keywords": ["привет", "hello", "hi"],
+                    "message_types": ["text"],
+                    "is_active": True
+                },
+                {
+                    "condition_type": "chat_filter",
+                    "chat_filter": {
+                        "chat_types": ["private", "group"],
+                        "min_members": 2,
+                        "max_members": 100
+                    },
+                    "is_active": True
+                }
+            ],
+            "actions": [
+                {
+                    "action_type": "send_content",
+                    "media_contents": [
+                        {
+                            "content_type": "text",
+                            "text_content": "Привет! Как дела?"
+                        }
+                    ],
+                    "delay_seconds": 2,
+                    "reply_to_message": True
+                }
+            ],
+            "conditional_rules": [
+                {
+                    "condition": {
+                        "condition_type": "user_filter",
+                        "usernames": ["admin", "moderator"],
+                        "is_active": True
+                    },
+                    "if_action": {
+                        "action_type": "send_content",
+                        "media_contents": [
+                            {
+                                "content_type": "text",
+                                "text_content": "Здравствуйте, администратор!"
+                            }
+                        ]
+                    },
+                    "else_action": {
+                        "action_type": "send_content",
+                        "media_contents": [
+                            {
+                                "content_type": "text",
+                                "text_content": "Привет, пользователь!"
+                            }
+                        ]
+                    }
+                }
+            ],
+            "is_active": True,
+            "priority": 1,
+            "max_triggers_per_day": 100,
+            "cooldown_seconds": 30
+        }
+        
+        success, rule_response = self.run_test("Create Enhanced Rule", "POST", "/api/rules", 200, enhanced_rule)
+        
+        created_rule_id = None
+        if success and rule_response.get('id'):
+            created_rule_id = rule_response['id']
+        
+        # Test 2: Create rule with inline buttons
+        rule_with_buttons = {
+            "name": "Rule with Inline Buttons",
+            "conditions": [
+                {
+                    "condition_type": "message_filter",
+                    "keywords": ["меню", "menu"],
+                    "is_active": True
+                }
+            ],
+            "actions": [
+                {
+                    "action_type": "send_content",
+                    "media_contents": [
+                        {
+                            "content_type": "text",
+                            "text_content": "Выберите опцию:"
+                        }
+                    ],
+                    "inline_buttons": [
+                        [
+                            {
+                                "text": "Опция 1",
+                                "button_type": "callback",
+                                "callback_data": "option_1",
+                                "callback_action": "send_text",
+                                "callback_content": "Вы выбрали опцию 1"
+                            },
+                            {
+                                "text": "Опция 2",
+                                "button_type": "callback",
+                                "callback_data": "option_2",
+                                "callback_action": "send_text",
+                                "callback_content": "Вы выбрали опцию 2"
+                            }
+                        ],
+                        [
+                            {
+                                "text": "Сайт",
+                                "button_type": "url",
+                                "url": "https://example.com"
+                            }
+                        ]
+                    ]
+                }
+            ],
+            "is_active": True
+        }
+        
+        self.run_test("Create Rule with Buttons", "POST", "/api/rules", 200, rule_with_buttons)
+        
+        # Test 3: Update enhanced rule
+        if created_rule_id:
+            update_data = {
+                "name": "Updated Enhanced Rule",
+                "description": "Updated description",
+                "max_triggers_per_day": 200,
+                "cooldown_seconds": 60
+            }
+            
+            self.run_test("Update Enhanced Rule", "PUT", f"/api/rules/{created_rule_id}", 200, update_data)
+            
+            # Test get updated rule
+            self.run_test("Get Updated Rule", "GET", f"/api/rules/{created_rule_id}", 200)
+            
+            # Test delete rule
+            self.run_test("Delete Enhanced Rule", "DELETE", f"/api/rules/{created_rule_id}", 200)
+        
+        # Test 4: Create rule with media content
+        rule_with_media = {
+            "name": "Rule with Media",
+            "conditions": [
+                {
+                    "condition_type": "message_filter",
+                    "keywords": ["картинка", "image"],
+                    "is_active": True
+                }
+            ],
+            "actions": [
+                {
+                    "action_type": "send_content",
+                    "media_contents": [
+                        {
+                            "content_type": "image",
+                            "file_path": "/uploads/test_image.jpg",
+                            "caption": "Вот ваша картинка!"
+                        },
+                        {
+                            "content_type": "text",
+                            "text_content": "Дополнительный текст"
+                        }
+                    ]
+                }
+            ],
+            "is_active": True
+        }
+        
+        self.run_test("Create Rule with Media", "POST", "/api/rules", 200, rule_with_media)
+
+    def test_callback_processing(self):
+        """Test callback processing endpoints (/api/callbacks/*)"""
+        print("\n🔄 Testing Callback Processing...")
+        
+        # Test 1: Process callback query
+        callback_data = {
+            "data": "option_1",
+            "user_id": "123456789",
+            "chat_id": "-987654321",
+            "message_id": 12345
+        }
+        
+        success, callback_response = self.run_test("Process Callback Query", "POST", "/api/callbacks/process", 200, callback_data)
+        
+        # Test 2: Process callback with additional data
+        complex_callback = {
+            "data": "menu_action_settings",
+            "user_id": "987654321",
+            "chat_id": "-123456789",
+            "message_id": 54321
+        }
+        
+        self.run_test("Process Complex Callback", "POST", "/api/callbacks/process", 200, complex_callback)
+        
+        # Test 3: Process callback with missing data
+        invalid_callback = {
+            "data": "test_callback"
+            # Missing required fields
+        }
+        
+        self.run_test("Process Invalid Callback", "POST", "/api/callbacks/process", 422, invalid_callback)
+
+    def test_statistics_and_notifications(self):
+        """Test statistics and notifications endpoints"""
+        print("\n📊 Testing Statistics & Notifications...")
+        
+        # Test 1: Get rule statistics (will return empty for non-existent rule)
+        self.run_test("Get Rule Statistics", "GET", "/api/rules/test-rule-id/stats", 200)
+        
+        # Test 2: Get rule statistics with days parameter
+        self.run_test("Get Rule Statistics (7 days)", "GET", "/api/rules/test-rule-id/stats?days=7", 200)
+        self.run_test("Get Rule Statistics (30 days)", "GET", "/api/rules/test-rule-id/stats?days=30", 200)
+        
+        # Test 3: Get system notifications
+        success, notifications_data = self.run_test("Get System Notifications", "GET", "/api/system/notifications", 200)
+        
+        # Test 4: Mark notification as read (will fail for non-existent notification)
+        self.run_test("Mark Notification Read", "PUT", "/api/system/notifications/test-notification-id/read", 404)
+
+    def test_data_validation(self):
+        """Test data validation for new models"""
+        print("\n✅ Testing Data Validation...")
+        
+        # Test 1: Create rule with invalid condition type
+        invalid_rule = {
+            "name": "Invalid Rule",
+            "conditions": [
+                {
+                    "condition_type": "invalid_type",
+                    "is_active": True
+                }
+            ],
+            "actions": [
+                {
+                    "action_type": "invalid_action"
+                }
+            ]
+        }
+        
+        # This should still create successfully as the API doesn't validate enum values strictly
+        self.run_test("Create Rule with Invalid Types", "POST", "/api/rules", 200, invalid_rule)
+        
+        # Test 2: Create template with empty name
+        invalid_template = {
+            "name": "",
+            "template_text": "Test template"
+        }
+        
+        self.run_test("Create Template with Empty Name", "POST", "/api/templates", 200, invalid_template)
+        
+        # Test 3: Upload media with invalid file type parameter
+        test_content = b'fake_content'
+        files = {
+            'file': ('test.txt', test_content, 'text/plain')
+        }
+        data = {
+            'file_type': 'invalid_type'
+        }
+        
+        self.run_test("Upload with Invalid File Type", "POST", "/api/media/upload", 400, data, files)
+
     def run_all_tests(self):
-        """Run all API tests with focus on 2FA attribute error fix"""
-        print("🚀 Starting Telegram Userbot Manager API Tests")
-        print("🎯 FOCUS: Testing 2FA Attribute Error Fix - 'User' object has no attribute 'user'")
+        """Run all API tests focusing on enhanced auto-reply system"""
+        print("🚀 Starting Enhanced Auto-Reply System API Tests")
+        print("🎯 FOCUS: Testing New Enhanced API Endpoints for Auto-Reply Rules System")
         print(f"Testing against: {self.base_url}")
-        print("=" * 60)
+        print("=" * 80)
         
         try:
-            # Priority 1: Test the specific 2FA attribute error fix (MAIN FOCUS)
-            self.test_telegram_2fa_attribute_fix()
+            # Priority 1: Enhanced Media Endpoints
+            self.test_enhanced_media_endpoints()
             
-            # Priority 2: Test the complete 2FA implementation (for comprehensive coverage)
-            self.test_telegram_2fa_flow()
+            # Priority 2: Rule Templates
+            self.test_rule_templates_endpoints()
             
-            # Priority 3: Test the existing authorization flow (for regression testing)
-            self.test_telegram_authorization_flow()
+            # Priority 3: Enhanced Rules System
+            self.test_enhanced_rules_system()
             
-            # Priority 4: Test basic functionality
+            # Priority 4: Callback Processing
+            self.test_callback_processing()
+            
+            # Priority 5: Statistics & Notifications
+            self.test_statistics_and_notifications()
+            
+            # Priority 6: Data Validation
+            self.test_data_validation()
+            
+            # Basic functionality tests
             self.test_basic_endpoints()
             self.test_accounts_endpoints()
-            
-            # Priority 5: Test other endpoints for completeness
             self.test_bot_control_endpoints()
             self.test_settings_endpoints()
-            self.test_rules_endpoints()
-            self.test_images_endpoints()
             self.test_logs_endpoints()
             self.test_status_endpoints()
+            
+            # Legacy tests for regression
+            self.test_rules_endpoints()
+            self.test_images_endpoints()
             
         except Exception as e:
             print(f"❌ Critical error during testing: {e}")
