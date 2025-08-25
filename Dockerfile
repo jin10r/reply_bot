@@ -78,9 +78,7 @@ RUN echo "MONGO_URL=mongodb://mongodb:27017" > /app/backend/.env.template && \
     echo "CORS_ORIGINS=*" >> /app/backend/.env.template
 
 # Create frontend environment template  
-RUN cat > /app/frontend/.env.template << 'EOF'
-REACT_APP_BACKEND_URL=http://localhost:8001
-EOF
+RUN echo "REACT_APP_BACKEND_URL=http://localhost:8001" > /app/frontend/.env.template
 
 # Create startup script
 RUN cat > /app/start.sh << 'EOF'
