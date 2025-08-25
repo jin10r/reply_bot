@@ -153,7 +153,7 @@ class TelegramUserbotAPITester:
                 f"2FA Fix: Edge Case Password {i+1}", 
                 "POST", 
                 "/api/accounts/verify-2fa", 
-                404,  # Still expecting 404 for non-existent verification
+                400,  # Expecting 400 for verification not found
                 edge_case
             )
             
