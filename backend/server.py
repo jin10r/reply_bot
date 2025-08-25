@@ -14,7 +14,7 @@ import aiofiles
 import shutil
 from PIL import Image as PILImage
 
-from .models import (
+from models import (
     TelegramAccount, TelegramAccountCreate, TelegramAccountUpdate,
     AutoReplyRule, AutoReplyRuleCreate, AutoReplyRuleUpdate,
     BotImage, BotImageCreate, BotSettings, BotSettingsUpdate,
@@ -22,7 +22,7 @@ from .models import (
     APIResponse, StatusCheck, StatusCheckCreate,
     AccountStatus, BotStatus
 )
-from .userbot_manager import UserbotManager
+from userbot_manager import UserbotManager
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
