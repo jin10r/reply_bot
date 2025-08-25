@@ -255,11 +255,9 @@
 
 ## test_plan:
   current_focus:
-    - "Enhanced Media Endpoints testing - COMPLETED"
-    - "Rule Templates testing - COMPLETED"
-    - "Enhanced Rules System testing - COMPLETED"
-    - "Callback Processing testing - COMPLETED"
-    - "Statistics & Notifications testing - COMPLETED"
+    - "Enhanced Rules UI functionality testing - READY FOR TESTING"
+    - "MediaManager upload and file management testing - READY FOR TESTING"
+    - "Backend enhanced API comprehensive testing - COMPLETED"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
