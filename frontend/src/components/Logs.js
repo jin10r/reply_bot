@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { 
+  FileText, 
+  MessageCircle, 
+  Users, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Filter,
+  Search,
+  RefreshCw
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -8,25 +25,14 @@ const Logs = () => {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [limit] = useState(50);
-  const [hasMore, setHasMore] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  const fetchLogs = async (reset = false) => {
+  const fetchLogs = async () => {
     setLoading(true);
     try {
-      const currentPage = reset ? 0 : page;
-      const response = await axios.get(`${API}/logs?skip=${currentPage * limit}&limit=${limit}`);
-      
-      if (reset) {
-        setLogs(response.data);
-        setPage(0);
-      } else {
-        setLogs(prev => [...prev, ...response.data]);
-      }
-      
-      setHasMore(response.data.length === limit);
-      if (!reset) setPage(prev => prev + 1);
+      const response = await axios.get(`${API}/logs?limit=50`);
+      setLogs(response.data);
     } catch (error) {
       console.error("Failed to fetch logs:", error);
     }
@@ -43,208 +49,242 @@ const Logs = () => {
   };
 
   useEffect(() => {
-    fetchLogs(true);
+    fetchLogs();
     fetchStats();
-    
     const interval = setInterval(() => {
-      fetchLogs(true);
+      fetchLogs();
       fetchStats();
-    }, 10000); // Update every 10 seconds
-    
+    }, 10000); // Refresh every 10 seconds
     return () => clearInterval(interval);
   }, []);
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString('ru-RU');
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = searchTerm === "" || 
+      log.message_text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action_taken?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "success" && log.success) ||
+      (statusFilter === "error" && !log.success);
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusInfo = (success) => {
+    return success 
+      ? { icon: CheckCircle, color: "text-success", variant: "success", text: "Успешно" }
+      : { icon: XCircle, color: "text-destructive", variant: "destructive", text: "Ошибка" };
   };
 
-  const getChatTypeIcon = (chatType) => {
-    switch (chatType.toLowerCase()) {
-      case 'private': return '👤';
-      case 'group': return '👥';
-      case 'supergroup': return '👥';
-      case 'channel': return '📢';
-      default: return '💬';
+  const getChatTypeInfo = (chatType) => {
+    switch (chatType) {
+      case "private":
+        return { text: "Личные", variant: "default" };
+      case "group":
+        return { text: "Группа", variant: "secondary" };
+      case "supergroup":
+        return { text: "Супергруппа", variant: "outline" };
+      default:
+        return { text: chatType, variant: "secondary" };
     }
-  };
-
-  const getStatusIcon = (success) => {
-    return success ? '✅' : '❌';
-  };
-
-  const getStatusColor = (success) => {
-    return success ? 'text-green-600' : 'text-red-600';
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Логи активности</h1>
-
-        {/* Statistics */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Всего ответов</p>
-                  <p className="text-2xl font-bold">{stats.total_responses}</p>
-                </div>
-                <div className="text-3xl">📊</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm">Успешных</p>
-                  <p className="text-2xl font-bold">{stats.successful_responses}</p>
-                </div>
-                <div className="text-3xl">✅</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-red-100 text-sm">Ошибок</p>
-                  <p className="text-2xl font-bold">{stats.failed_responses}</p>
-                </div>
-                <div className="text-3xl">❌</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm">Сегодня</p>
-                  <p className="text-2xl font-bold">{stats.responses_today}</p>
-                </div>
-                <div className="text-3xl">📅</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Refresh Button */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-sm text-gray-600">
-            Автообновление каждые 10 секунд
-          </div>
-          <button
-            onClick={() => fetchLogs(true)}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            🔄 Обновить
-          </button>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Журнал активности</h1>
+          <p className="text-muted-foreground">
+            История автоматических ответов и активности бота
+          </p>
         </div>
+        
+        <Button onClick={fetchLogs} disabled={loading}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Обновить
+        </Button>
+      </div>
 
-        {/* Logs List */}
-        <div className="space-y-3">
-          {logs.length === 0 && !loading ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Нет логов активности
-              </h3>
-              <p className="text-gray-600">
-                Логи появятся после активности бота
-              </p>
+      {/* Statistics Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Всего ответов</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total_responses}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Успешных</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-success">{stats.successful_responses}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Ошибок</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">{stats.failed_responses}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Успешность</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-primary">
+                {stats.success_rate.toFixed(1)}%
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Фильтры и поиск</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Поиск по сообщениям, пользователям, действиям..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
-          ) : (
-            logs.map((log) => (
-              <div key={log.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Статус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="success">Только успешные</SelectItem>
+                <SelectItem value="error">Только ошибки</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Logs List */}
+      <div className="space-y-3">
+        {filteredLogs.map((log) => {
+          const statusInfo = getStatusInfo(log.success);
+          const chatTypeInfo = getChatTypeInfo(log.chat_type);
+          const StatusIcon = statusInfo.icon;
+          
+          return (
+            <Card key={log.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <span className="text-xl">{getStatusIcon(log.success)}</span>
-                      <span className="text-xl">{getChatTypeIcon(log.chat_type)}</span>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {log.first_name || 'Неизвестный пользователь'}
-                          {log.username && ` (@${log.username})`}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          ID: {log.user_id} • Чат: {log.chat_id}
-                        </p>
-                      </div>
+                  <div className="flex items-start space-x-4 flex-1">
+                    {/* Status Icon */}
+                    <div className="mt-1">
+                      <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
                     </div>
                     
-                    {log.message_text && (
-                      <div className="mb-2 p-2 bg-gray-50 rounded text-sm">
-                        <strong>Сообщение:</strong> {log.message_text}
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {log.first_name || log.username || `User ${log.user_id}`}
+                          </span>
+                          {log.username && (
+                            <span className="text-sm text-muted-foreground">@{log.username}</span>
+                          )}
+                        </div>
+                        
+                        <Badge variant={chatTypeInfo.variant}>
+                          {chatTypeInfo.text}
+                        </Badge>
+                        
+                        <Badge variant={statusInfo.variant}>
+                          {statusInfo.text}
+                        </Badge>
                       </div>
-                    )}
-                    
-                    <div className="text-sm text-gray-600 mb-2">
-                      <strong>Действие:</strong> {log.action_taken}
-                    </div>
-                    
-                    {log.error_message && (
-                      <div className="text-sm text-red-600 mb-2">
-                        <strong>Ошибка:</strong> {log.error_message}
+                      
+                      {/* Message */}
+                      {log.message_text && (
+                        <div className="mb-2">
+                          <MessageCircle className="w-4 h-4 inline mr-2 text-muted-foreground" />
+                          <span className="text-sm bg-muted px-2 py-1 rounded">
+                            {log.message_text.length > 100 
+                              ? `${log.message_text.substring(0, 100)}...` 
+                              : log.message_text
+                            }
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Action */}
+                      <div className="text-sm text-muted-foreground mb-2">
+                        <strong>Действие:</strong> {log.action_taken}
                       </div>
-                    )}
-                    
-                    <div className="text-xs text-gray-500">
-                      {formatTimestamp(log.timestamp)}
+                      
+                      {/* Error Message */}
+                      {!log.success && log.error_message && (
+                        <div className="text-sm text-destructive bg-destructive/10 px-2 py-1 rounded">
+                          <AlertTriangle className="w-3 h-3 inline mr-1" />
+                          {log.error_message}
+                        </div>
+                      )}
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      log.success ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                    }`}>
-                      {log.success ? "Успешно" : "Ошибка"}
-                    </span>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                      {log.chat_type}
-                    </span>
+                  {/* Timestamp */}
+                  <div className="flex items-center space-x-1 text-xs text-muted-foreground ml-4">
+                    <Clock className="w-3 h-3" />
+                    <span>{new Date(log.timestamp).toLocaleString("ru-RU")}</span>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-
-          {/* Load More Button */}
-          {hasMore && logs.length > 0 && (
-            <div className="text-center pt-6">
-              <button
-                onClick={() => fetchLogs()}
-                disabled={loading}
-                className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-medium"
-              >
-                {loading ? "Загрузка..." : "Загрузить ещё"}
-              </button>
-            </div>
-          )}
-
-          {loading && logs.length === 0 && (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Загрузка логов...</p>
-            </div>
-          )}
-        </div>
-
-        {/* Export/Clear Options */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Показано: {logs.length} записей
-            </div>
-            <div className="space-x-3">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
-                📄 Экспорт CSV
-              </button>
-              <button className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium text-sm">
-                🗑️ Очистить старые
-              </button>
-            </div>
-          </div>
-        </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
+      {/* Empty State */}
+      {filteredLogs.length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <CardTitle className="mb-2">
+              {logs.length === 0 ? "Нет записей в журнале" : "Нет записей по фильтру"}
+            </CardTitle>
+            <CardDescription>
+              {logs.length === 0 
+                ? "Журнал активности появится после первых автоответов" 
+                : "Попробуйте изменить параметры поиска или фильтры"
+              }
+            </CardDescription>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Load More Button */}
+      {logs.length > 0 && logs.length % 50 === 0 && (
+        <div className="text-center">
+          <Button variant="outline" onClick={fetchLogs}>
+            Загрузить еще
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
