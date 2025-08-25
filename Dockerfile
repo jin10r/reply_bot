@@ -51,28 +51,26 @@ RUN mkdir -p /app/backend/uploads \
     /etc/supervisor/conf.d
 
 # Create supervisor configuration
-RUN cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
-[supervisord]
-nodaemon=true
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/var/run/supervisord.pid
-
-[program:backend]
-command=python -m uvicorn server:app --host 0.0.0.0 --port 8001
-directory=/app/backend
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/supervisor/backend.out.log
-stderr_logfile=/var/log/supervisor/backend.err.log
-
-[program:frontend]
-command=python -m http.server 3000 --directory build
-directory=/app/frontend
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/supervisor/frontend.out.log
-stderr_logfile=/var/log/supervisor/frontend.err.log
-EOF
+RUN echo "[supervisord]" > /etc/supervisor/conf.d/supervisord.conf && \
+    echo "nodaemon=true" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "logfile=/var/log/supervisor/supervisord.log" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "pidfile=/var/run/supervisord.pid" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "[program:backend]" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "command=python -m uvicorn server:app --host 0.0.0.0 --port 8001" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "directory=/app/backend" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "autostart=true" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "autorestart=true" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "stdout_logfile=/var/log/supervisor/backend.out.log" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "stderr_logfile=/var/log/supervisor/backend.err.log" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "[program:frontend]" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "command=python -m http.server 3000 --directory build" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "directory=/app/frontend" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "autostart=true" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "autorestart=true" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "stdout_logfile=/var/log/supervisor/frontend.out.log" >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo "stderr_logfile=/var/log/supervisor/frontend.err.log" >> /etc/supervisor/conf.d/supervisord.conf
 
 # Create environment file template
 RUN cat > /app/backend/.env.template << 'EOF'
