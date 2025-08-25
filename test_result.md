@@ -159,7 +159,7 @@
 
 ## test_plan:
   current_focus:
-    - "Telegram authorization fix - PHONE_CODE_EXPIRED resolution" 
+    - "2FA (Two-Factor Authentication) implementation for Telegram authorization"
     - "Backend authentication flow improvements"
   stuck_tasks: []
   test_all: false
