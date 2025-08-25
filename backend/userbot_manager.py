@@ -306,14 +306,97 @@ class UserbotManager:
             upsert=True
         )
     
-    async def get_active_rules(self, account_id: str = None) -> List[AutoReplyRule]:
-        """Получение активных правил"""
+    async def get_active_rules(self, account_id: Optional[str] = None) -> List[AutoReplyRule]:
+        """Получение активных правил с кэшированием"""
+        cache_key = f"rules_{account_id or 'all'}"
+        
+        # Проверяем кэш
+        if (cache_key in self._rules_cache and 
+            cache_key in self._rules_cache_ttl and 
+            datetime.utcnow() < self._rules_cache_ttl[cache_key]):
+            return self._rules_cache[cache_key]
+        
+        # Загружаем из базы данных
         query = {"is_active": True}
         if account_id:
-            query["$or"] = [{"account_id": account_id}, {"account_id": None}]
+            query["account_id"] = account_id
+        
+        rules_docs = await self.db.auto_reply_rules.find(query).to_list(1000)
+        rules = [AutoReplyRule(**rule) for rule in rules_docs]
+        
+        # Сохраняем в кэш
+        self._rules_cache[cache_key] = rules
+        self._rules_cache_ttl[cache_key] = datetime.utcnow() + timedelta(seconds=self._cache_ttl_seconds)
+        
+        return rules
+    
+    async def clear_rules_cache(self, account_id: Optional[str] = None):
+        """Очистка кэша правил"""
+        if account_id:
+            cache_key = f"rules_{account_id}"
+            self._rules_cache.pop(cache_key, None)
+            self._rules_cache_ttl.pop(cache_key, None)
+        else:
+            # Очищаем весь кэш правил
+            self._rules_cache.clear()
+            self._rules_cache_ttl.clear()
+    
+    async def get_bot_settings(self) -> Optional[BotSettings]:
+        """Получение настроек бота с кэшированием"""
+        cache_key = "bot_settings"
+        
+        # Проверяем кэш (короткий TTL для настроек)
+        if (hasattr(self, '_settings_cache') and 
+            hasattr(self, '_settings_cache_time') and
+            datetime.utcnow() < self._settings_cache_time):
+            return self._settings_cache
+        
+        settings_doc = await self.db.bot_settings.find_one()
+        settings = BotSettings(**settings_doc) if settings_doc else None
+        
+        # Кэшируем на 30 секунд
+        self._settings_cache = settings
+        self._settings_cache_time = datetime.utcnow() + timedelta(seconds=30)
+        
+        return settings
+        
+    async def bulk_log_activities(self, activities: List[BotActivityLog]):
+        """Массовое логирование активности для улучшения производительности"""
+        if not activities:
+            return
             
-        rules_data = await self.db.auto_reply_rules.find(query).to_list(1000)
-        return [AutoReplyRule(**rule) for rule in rules_data]
+        # Разбиваем на батчи
+        for i in range(0, len(activities), self._bulk_operation_batch_size):
+            batch = activities[i:i + self._bulk_operation_batch_size]
+            batch_docs = [activity.dict() for activity in batch]
+            
+            try:
+                await self.db.bot_activity_logs.insert_many(batch_docs, ordered=False)
+            except Exception as e:
+                logger.error(f"Bulk activity logging error: {e}")
+                # Fallback to individual inserts
+                for activity in batch:
+                    try:
+                        await self.db.bot_activity_logs.insert_one(activity.dict())
+                    except Exception as individual_error:
+                        logger.error(f"Individual activity logging error: {individual_error}")
+    
+    def _optimize_query_with_indexes(self, collection_name: str, query: dict) -> dict:
+        """Оптимизация запросов для использования индексов"""
+        optimized_query = query.copy()
+        
+        # Добавляем hints для оптимизации запросов
+        if collection_name == "auto_reply_rules":
+            # Убеждаемся что запросы используют индексы по is_active и priority
+            if "is_active" not in optimized_query:
+                optimized_query["is_active"] = True
+                
+        elif collection_name == "media_files":
+            # Для медиафайлов добавляем фильтр по активности
+            if "is_active" not in optimized_query:
+                optimized_query["is_active"] = True
+        
+        return optimized_query
     
     async def get_image_by_id(self, image_id: str) -> Optional[BotImage]:
         """Получение картинки по ID"""
