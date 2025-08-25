@@ -31,6 +31,48 @@ from userbot_manager import UserbotManager
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Global cache for frequently accessed data
+_cache = {}
+_cache_ttl = {}
+
+def cache_response(ttl_seconds=300):
+    """Decorator for caching API responses"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Create cache key from function name and args
+            cache_key = f"{func.__name__}_{hash(str(args) + str(kwargs))}"
+            
+            # Check if cached and not expired
+            if cache_key in _cache and datetime.utcnow() < _cache_ttl.get(cache_key, datetime.min):
+                return _cache[cache_key]
+            
+            # Execute function and cache result
+            result = await func(*args, **kwargs)
+            _cache[cache_key] = result
+            _cache_ttl[cache_key] = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+            
+            return result
+        return wrapper
+    return decorator
+
+def handle_errors(func):
+    """Centralized error handling decorator"""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail="Resource not found")
+        except PermissionError as e:
+            raise HTTPException(status_code=403, detail="Permission denied")
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    return wrapper
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
