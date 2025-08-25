@@ -162,7 +162,7 @@
 
 ## test_plan:
   current_focus:
-    - "2FA (Two-Factor Authentication) implementation for Telegram authorization"
+    - "2FA (Two-Factor Authentication) implementation for Telegram authorization - COMPLETED"
     - "Backend authentication flow improvements"
   stuck_tasks: []
   test_all: false
