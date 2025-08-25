@@ -25,12 +25,14 @@ const Accounts = () => {
   const [accounts, setAccounts] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showVerifyForm, setShowVerifyForm] = useState(false);
+  const [show2FAForm, setShow2FAForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     phone: "",
     api_id: "",
     api_hash: "",
-    verification_code: ""
+    verification_code: "",
+    twofa_password: ""
   });
   const [verificationId, setVerificationId] = useState("");
 
