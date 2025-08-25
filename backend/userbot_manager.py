@@ -140,7 +140,7 @@ class UserbotManager:
             rules = await self.get_active_rules(account_id)
             
             # Находим подходящее правило с расширенной проверкой
-            matching_rule = await self.find_enhanced_matching_rule(message, rules)
+            matching_rule = await self.find_matching_rule(message, rules, use_enhanced=True)
             
             if matching_rule:
                 await self.execute_enhanced_rule_actions(client, message, matching_rule, account_id)
