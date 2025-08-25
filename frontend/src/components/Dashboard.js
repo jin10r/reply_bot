@@ -150,7 +150,7 @@ const Dashboard = () => {
             ) : (
               <Play className="w-4 h-4 mr-2" />
             )}
-            {loading ? "Запуск..." : "Запустить"}
+            {loading ? t('dashboard.starting') : t('dashboard.start')}
           </Button>
           
           <Button
