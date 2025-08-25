@@ -332,7 +332,7 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Быстрые действия</CardTitle>
+          <CardTitle>{t('dashboard.quickActions')}</CardTitle>
           <CardDescription>
             Часто используемые функции управления
           </CardDescription>
@@ -345,7 +345,7 @@ const Dashboard = () => {
               onClick={() => navigate('/accounts')}
             >
               <Users className="w-6 h-6" />
-              <span className="text-sm">Аккаунты</span>
+              <span className="text-sm">{t('navigation.accounts')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -353,7 +353,7 @@ const Dashboard = () => {
               onClick={() => navigate('/rules')}
             >
               <Zap className="w-6 h-6" />
-              <span className="text-sm">Правила</span>
+              <span className="text-sm">{t('navigation.rules')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -361,7 +361,7 @@ const Dashboard = () => {
               onClick={() => navigate('/media')}
             >
               <Image className="w-6 h-6" />
-              <span className="text-sm">Медиафайлы</span>
+              <span className="text-sm">{t('navigation.media')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -369,7 +369,7 @@ const Dashboard = () => {
               onClick={() => navigate('/logs')}
             >
               <Activity className="w-6 h-6" />
-              <span className="text-sm">Логи</span>
+              <span className="text-sm">{t('navigation.logs')}</span>
             </Button>
           </div>
         </CardContent>
