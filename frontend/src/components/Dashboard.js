@@ -164,7 +164,7 @@ const Dashboard = () => {
             ) : (
               <Square className="w-4 h-4 mr-2" />
             )}
-            {loading ? "Остановка..." : "Остановить"}
+            {loading ? t('dashboard.stopping') : t('dashboard.stop')}
           </Button>
         </div>
       </div>
