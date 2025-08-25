@@ -264,14 +264,14 @@ class BackendPerformanceTester:
         print("\n🚨 Testing Centralized Error Handling...")
         
         error_test_cases = [
-            ("GET", "/api/nonexistent", 404, "Non-existent endpoint"),
-            ("GET", "/api/accounts/invalid-id", 404, "Invalid account ID"),
-            ("GET", "/api/rules/invalid-id", 404, "Invalid rule ID"),
-            ("GET", "/api/media/invalid-id", 404, "Invalid media ID"),
+            ("GET", "/api/nonexistent", 404, "Non-existent endpoint", None),
+            ("GET", "/api/accounts/invalid-id", 404, "Invalid account ID", None),
+            ("GET", "/api/rules/invalid-id", 404, "Invalid rule ID", None),
+            ("GET", "/api/media/invalid-id", 404, "Invalid media ID", None),
             ("POST", "/api/rules", 422, "Invalid rule data", {"invalid": "data"}),
             ("POST", "/api/media/upload", 400, "Invalid file upload", {"invalid": "file"}),
             ("PUT", "/api/accounts/invalid", 404, "Update non-existent account", {"name": "test"}),
-            ("DELETE", "/api/rules/invalid", 404, "Delete non-existent rule"),
+            ("DELETE", "/api/rules/invalid", 404, "Delete non-existent rule", None),
         ]
         
         error_response_times = []
