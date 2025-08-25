@@ -81,21 +81,19 @@ RUN echo "MONGO_URL=mongodb://mongodb:27017" > /app/backend/.env.template && \
 RUN echo "REACT_APP_BACKEND_URL=http://localhost:8001" > /app/frontend/.env.template
 
 # Create startup script
-RUN cat > /app/start.sh << 'EOF'
-#!/bin/bash
-
-# Copy environment templates if env files don't exist
-if [ ! -f /app/backend/.env ]; then
-    cp /app/backend/.env.template /app/backend/.env
-fi
-
-if [ ! -f /app/frontend/.env ]; then
-    cp /app/frontend/.env.template /app/frontend/.env
-fi
-
-# Start supervisor
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-EOF
+RUN echo "#!/bin/bash" > /app/start.sh && \
+    echo "" >> /app/start.sh && \
+    echo "# Copy environment templates if env files don't exist" >> /app/start.sh && \
+    echo "if [ ! -f /app/backend/.env ]; then" >> /app/start.sh && \
+    echo "    cp /app/backend/.env.template /app/backend/.env" >> /app/start.sh && \
+    echo "fi" >> /app/start.sh && \
+    echo "" >> /app/start.sh && \
+    echo "if [ ! -f /app/frontend/.env ]; then" >> /app/start.sh && \
+    echo "    cp /app/frontend/.env.template /app/frontend/.env" >> /app/start.sh && \
+    echo "fi" >> /app/start.sh && \
+    echo "" >> /app/start.sh && \
+    echo "# Start supervisor" >> /app/start.sh && \
+    echo "exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf" >> /app/start.sh
 
 RUN chmod +x /app/start.sh
 
