@@ -655,32 +655,103 @@ const UnifiedMediaManager = () => {
 
       {/* Upload Dialog */}
       <Dialog open={showUploadDialog} onOpenChange={resetUploadForm}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Загрузить медиафайл</DialogTitle>
             <DialogDescription>
-              Выберите файл и настройте параметры загрузки
+              Перетащите файл или выберите с компьютера
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="file-input">Файл</Label>
-              <Input
-                id="file-input"
+          <div className="space-y-6">
+            {/* Drag & Drop Area */}
+            <div 
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                isDragging 
+                  ? 'border-primary bg-primary/5' 
+                  : uploadForm.file 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {uploadForm.file ? (
+                <div className="space-y-4">
+                  {/* File Preview */}
+                  <div className="flex items-center justify-center">
+                    {uploadForm.preview ? (
+                      <img 
+                        src={uploadForm.preview} 
+                        alt="Preview" 
+                        className="max-w-32 max-h-32 object-contain rounded-lg"
+                      />
+                    ) : (
+                      <div className={`w-16 h-16 rounded-full ${getFileTypeColor(uploadForm.fileType)} flex items-center justify-center text-white`}>
+                        {getFileTypeIcon(uploadForm.fileType)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm font-medium text-green-600">
+                    <CheckCircle className="w-4 h-4 inline mr-2" />
+                    {uploadForm.file.name}
+                  </div>
+                  
+                  <div className="text-xs text-gray-500">
+                    {formatFileSize(uploadForm.file.size)} • {uploadForm.file.type}
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Выбрать другой файл
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Upload className="w-8 h-8 text-gray-400" />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-lg font-medium text-gray-900">
+                      Перетащите файл сюда
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      или
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Выберите файл
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-400">
+                    Максимальный размер: 10MB
+                  </p>
+                </div>
+              )}
+
+              <input
+                ref={fileInputRef}
                 type="file"
-                accept="image/*,.webp"
-                onChange={(e) => setUploadForm({
-                  ...uploadForm,
-                  file: e.target.files[0]
-                })}
+                className="hidden"
+                accept="image/*,audio/*,video/*,.pdf,.txt,.doc,.docx"
+                onChange={(e) => handleFileSelect(e.target.files[0])}
               />
-              <div className="text-xs text-muted-foreground">
-                Поддерживаемые форматы: JPG, PNG, GIF, SVG, WebP. Макс. размер: 5MB
-              </div>
             </div>
 
-            {apiEndpoint === "media" && (
+            {/* File Type Selector */}
+            {apiEndpoint === "media" && uploadForm.file && (
               <div className="space-y-2">
                 <Label htmlFor="file-type">Тип файла</Label>
                 <Select 
@@ -691,26 +762,59 @@ const UnifiedMediaManager = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="image">Изображение</SelectItem>
-                    <SelectItem value="sticker">Стикер</SelectItem>
-                    <SelectItem value="audio">Аудио</SelectItem>
-                    <SelectItem value="video">Видео</SelectItem>
-                    <SelectItem value="document">Документ</SelectItem>
+                    <SelectItem value="image">
+                      <div className="flex items-center gap-2">
+                        <Image className="w-4 h-4" />
+                        Изображение
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="sticker">
+                      <div className="flex items-center gap-2">
+                        <FileImage className="w-4 h-4" />
+                        Стикер
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="audio">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-4 h-4" />
+                        Аудио
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="video">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        Видео
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="document">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Документ
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="text-xs text-muted-foreground">
+                  Поддерживаемые форматы: {getSupportedFormats(uploadForm.fileType)}
+                </div>
               </div>
             )}
 
+            {/* Tags Input */}
             <div className="space-y-2">
               <Label htmlFor="tags">Теги (через запятую)</Label>
               <Input
                 id="tags"
                 value={uploadForm.tags}
                 onChange={(e) => setUploadForm({...uploadForm, tags: e.target.value})}
-                placeholder="мем, реакция, приветствие"
+                placeholder="мем, реакция, приветствие, автоответ"
               />
+              <div className="text-xs text-muted-foreground">
+                Теги помогут найти файл в будущем
+              </div>
             </div>
 
+            {/* Upload Progress */}
             {uploadProgress > 0 && (
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
@@ -725,15 +829,39 @@ const UnifiedMediaManager = () => {
                 </div>
               </div>
             )}
+
+            {/* Status Messages */}
+            {uploadStatus === "success" && (
+              <div className="flex items-center gap-2 text-green-600 text-sm">
+                <CheckCircle className="w-4 h-4" />
+                Файл успешно загружен!
+              </div>
+            )}
+
+            {uploadError && (
+              <div className="flex items-center gap-2 text-red-600 text-sm">
+                <AlertCircle className="w-4 h-4" />
+                {uploadError}
+              </div>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={resetUploadForm}>
               Отмена
             </Button>
-            <Button onClick={handleFileUpload} disabled={!uploadForm.file || uploadProgress > 0}>
-              <Upload className="w-4 h-4 mr-2" />
-              Загрузить
+            <Button 
+              onClick={handleFileUpload} 
+              disabled={!uploadForm.file || uploadProgress > 0}
+            >
+              {uploadProgress > 0 ? (
+                <>Загружается... {uploadProgress}%</>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Загрузить
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
