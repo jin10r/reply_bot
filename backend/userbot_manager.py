@@ -52,6 +52,16 @@ class UserbotManager:
             @client.on_message(filters.group & ~filters.me)
             async def handle_group_message(client: Client, message: Message):
                 await self.process_incoming_message(client, message, account_id)
+            
+            # Регистрируем обработчик callback запросов
+            @client.on_callback_query()
+            async def handle_callback_query(client: Client, callback_query):
+                await self.process_callback_query({
+                    "data": callback_query.data,
+                    "user_id": str(callback_query.from_user.id),
+                    "chat_id": str(callback_query.message.chat.id),
+                    "message_id": callback_query.message.id
+                })
                 
             await client.start()
             self.clients[account_id] = client
