@@ -621,24 +621,27 @@ class TelegramUserbotAPITester:
         self.run_test("Get Status Checks", "GET", "/api/status", 200)
 
     def run_all_tests(self):
-        """Run all API tests with focus on 2FA implementation"""
+        """Run all API tests with focus on 2FA attribute error fix"""
         print("🚀 Starting Telegram Userbot Manager API Tests")
-        print("🎯 FOCUS: Testing 2FA Implementation for Telegram Authorization")
+        print("🎯 FOCUS: Testing 2FA Attribute Error Fix - 'User' object has no attribute 'user'")
         print(f"Testing against: {self.base_url}")
         print("=" * 60)
         
         try:
-            # Priority 1: Test the 2FA implementation (the main focus of this testing session)
+            # Priority 1: Test the specific 2FA attribute error fix (MAIN FOCUS)
+            self.test_telegram_2fa_attribute_fix()
+            
+            # Priority 2: Test the complete 2FA implementation (for comprehensive coverage)
             self.test_telegram_2fa_flow()
             
-            # Priority 2: Test the existing authorization flow (for regression testing)
+            # Priority 3: Test the existing authorization flow (for regression testing)
             self.test_telegram_authorization_flow()
             
-            # Priority 3: Test basic functionality
+            # Priority 4: Test basic functionality
             self.test_basic_endpoints()
             self.test_accounts_endpoints()
             
-            # Priority 4: Test other endpoints for completeness
+            # Priority 5: Test other endpoints for completeness
             self.test_bot_control_endpoints()
             self.test_settings_endpoints()
             self.test_rules_endpoints()
