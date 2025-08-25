@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 class TelegramAuthTester:
-    def __init__(self, base_url="https://docker-reset.preview.emergentagent.com"):
+    def __init__(self, base_url="https://verify-helper.preview.emergentagent.com"):
         self.base_url = base_url
         self.session = requests.Session()
         
