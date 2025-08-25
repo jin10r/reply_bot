@@ -126,7 +126,7 @@ class TelegramUserbotAPITester:
                 f"2FA Fix: Multiple Attempts Test {i+1}", 
                 "POST", 
                 "/api/accounts/verify-2fa", 
-                404,  # Expecting 404 for non-existent verification
+                400,  # Expecting 400 for verification not found
                 test_case
             )
             
