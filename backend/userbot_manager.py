@@ -526,7 +526,7 @@ class UserbotManager:
             try:
                 # Выполняем 2FA аутентификацию
                 signed_in = await client.check_password(password)
-                logger.info(f"Successfully signed in user with 2FA: {signed_in.user.phone_number}")
+                logger.info(f"Successfully signed in user with 2FA: {signed_in.phone_number}")
                 
             except Exception as auth_error:
                 # Обработка ошибок 2FA
