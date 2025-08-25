@@ -12,15 +12,18 @@ import {
   Sun,
   Bot,
   Upload,
-  Layers
+  Layers,
+  Globe
 } from "lucide-react";
 import { cn } from "./lib/utils";
+import { LanguageProvider, useTranslation } from "./i18n";
 import Dashboard from "./components/Dashboard";
 import Accounts from "./components/Accounts";
 import UnifiedRules from "./components/UnifiedRules";
 import UnifiedMediaManager from "./components/UnifiedMediaManager";
 import Logs from "./components/Logs";
 import Settings from "./components/Settings";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
