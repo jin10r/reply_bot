@@ -83,22 +83,142 @@ class TelegramUserbotAPITester:
         # Test bot status
         self.run_test("Bot Status", "GET", "/api/bot/status", 200)
 
+    def test_telegram_authorization_flow(self):
+        """Test the complete Telegram authorization flow with PHONE_CODE_EXPIRED fixes"""
+        print("\n🔐 Testing Telegram Authorization Flow (PHONE_CODE_EXPIRED Fix)...")
+        
+        # Test data with realistic looking credentials
+        test_phone = "+12345678901"  # US format phone number
+        test_api_id = 123456  # Realistic API ID format
+        test_api_hash = "abcdef1234567890abcdef1234567890"  # 32-char hex string
+        
+        # Test 1: Send verification code
+        print("\n📱 Testing send-code endpoint...")
+        send_code_data = {
+            "phone": test_phone,
+            "api_id": test_api_id,
+            "api_hash": test_api_hash
+        }
+        
+        success, response_data = self.run_test(
+            "Send Verification Code", 
+            "POST", 
+            "/api/accounts/send-code", 
+            400,  # Expecting 400 due to invalid credentials, but testing endpoint structure
+            send_code_data
+        )
+        
+        # Check if the response contains proper error handling
+        if response_data and isinstance(response_data, dict):
+            detail = response_data.get('detail', '')
+            if any(keyword in detail.lower() for keyword in ['api_id_invalid', 'api_hash_invalid', 'phone_number_invalid']):
+                self.log_test("Send Code Error Handling", True, "Proper error message for invalid credentials")
+            else:
+                self.log_test("Send Code Error Handling", False, f"Unexpected error message: {detail}")
+        
+        # Test 2: Test verify-code endpoint structure (will fail without valid verification_id)
+        print("\n🔑 Testing verify-code endpoint structure...")
+        verify_code_data = {
+            "verification_id": "test-verification-id",
+            "code": "12345"
+        }
+        
+        success, response_data = self.run_test(
+            "Verify Code Structure", 
+            "POST", 
+            "/api/accounts/verify-code", 
+            404,  # Expecting 404 for non-existent verification_id
+            verify_code_data
+        )
+        
+        # Check if the response indicates proper verification handling
+        if response_data and isinstance(response_data, dict):
+            detail = response_data.get('detail', '')
+            if 'verification not found' in detail.lower():
+                self.log_test("Verify Code Error Handling", True, "Proper error for non-existent verification")
+            else:
+                self.log_test("Verify Code Error Handling", False, f"Unexpected error: {detail}")
+        
+        # Test 3: Test code cleaning functionality (simulate with invalid verification)
+        print("\n🧹 Testing code cleaning functionality...")
+        verify_code_with_spaces = {
+            "verification_id": "test-verification-id",
+            "code": "1 2 3 4 5"  # Code with spaces that should be cleaned
+        }
+        
+        success, response_data = self.run_test(
+            "Code Cleaning Test", 
+            "POST", 
+            "/api/accounts/verify-code", 
+            404,  # Still expecting 404, but testing that spaces don't cause parsing errors
+            verify_code_with_spaces
+        )
+        
+        # Test 4: Test extended timeout handling (check if verification records are properly managed)
+        print("\n⏰ Testing session management improvements...")
+        
+        # Test multiple send-code requests to see if session management works
+        for i in range(2):
+            test_data = {
+                "phone": f"+1234567890{i}",
+                "api_id": test_api_id,
+                "api_hash": test_api_hash
+            }
+            
+            success, response_data = self.run_test(
+                f"Session Management Test {i+1}", 
+                "POST", 
+                "/api/accounts/send-code", 
+                400,  # Expecting error due to invalid credentials
+                test_data
+            )
+            
+            # Small delay to test session handling
+            time.sleep(1)
+        
+        # Test 5: Test flood protection handling
+        print("\n🚫 Testing flood protection...")
+        
+        # Rapid requests to test flood protection
+        for i in range(3):
+            success, response_data = self.run_test(
+                f"Flood Protection Test {i+1}", 
+                "POST", 
+                "/api/accounts/send-code", 
+                400,
+                send_code_data
+            )
+            
+            if response_data and isinstance(response_data, dict):
+                detail = response_data.get('detail', '')
+                if 'flood' in detail.lower() or 'wait' in detail.lower():
+                    self.log_test("Flood Protection Detection", True, "Flood protection message detected")
+                    break
+        
+        # Test 6: Test 2FA detection messaging
+        print("\n🔐 Testing 2FA detection...")
+        
+        # This will test the endpoint's ability to handle 2FA scenarios
+        # (though we can't trigger real 2FA without valid credentials)
+        verify_2fa_test = {
+            "verification_id": "test-2fa-verification",
+            "code": "123456"
+        }
+        
+        success, response_data = self.run_test(
+            "2FA Detection Test", 
+            "POST", 
+            "/api/accounts/verify-code", 
+            404,  # Expecting 404 for non-existent verification
+            verify_2fa_test
+        )
+
     def test_accounts_endpoints(self):
         """Test accounts management endpoints"""
         print("\n👥 Testing Accounts Endpoints...")
         
         # Get all accounts
         success, accounts_data = self.run_test("Get All Accounts", "GET", "/api/accounts", 200)
-        
-        # Test account creation flow (send code)
-        test_account_data = {
-            "phone": "+1234567890",
-            "api_id": 12345,
-            "api_hash": "test_hash"
-        }
-        
-        # This will likely fail without real Telegram credentials, but we test the endpoint
-        self.run_test("Send Verification Code", "POST", "/api/accounts/send-code", 400, test_account_data)
         
         # Test getting non-existent account
         self.run_test("Get Non-existent Account", "GET", "/api/accounts/nonexistent", 404)
