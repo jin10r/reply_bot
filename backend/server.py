@@ -696,6 +696,9 @@ async def startup_event():
     """Инициализация при запуске сервера"""
     logger.info("Starting Telegram Userbot Manager")
     
+    # Create database indexes for better performance
+    await create_database_indexes()
+    
     # Создаем настройки бота если их нет
     settings = await db.bot_settings.find_one()
     if not settings:
@@ -711,6 +714,31 @@ async def startup_event():
             await userbot_manager.start_all_userbots()
         except Exception as e:
             logger.error(f"Failed to auto-start userbot: {e}")
+    
+    # Schedule periodic cache cleanup
+    asyncio.create_task(periodic_cache_cleanup())
+
+async def periodic_cache_cleanup():
+    """Периодическая очистка истекшего кэша"""
+    while True:
+        try:
+            current_time = datetime.utcnow()
+            expired_keys = [
+                key for key, expiry in _cache_ttl.items() 
+                if current_time > expiry
+            ]
+            for key in expired_keys:
+                _cache.pop(key, None)
+                _cache_ttl.pop(key, None)
+            
+            if expired_keys:
+                logger.debug(f"Cleaned up {len(expired_keys)} expired cache entries")
+            
+            # Run cleanup every 5 minutes
+            await asyncio.sleep(300)
+        except Exception as e:
+            logger.error(f"Cache cleanup error: {e}")
+            await asyncio.sleep(300)
 
 @app.on_event("shutdown")
 async def shutdown_event():
