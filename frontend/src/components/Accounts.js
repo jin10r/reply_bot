@@ -269,6 +269,35 @@ const Accounts = () => {
         </DialogContent>
       </Dialog>
 
+      {/* 2FA Dialog */}
+      <Dialog open={show2FAForm} onOpenChange={setShow2FAForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Двухфакторная аутентификация</DialogTitle>
+            <DialogDescription>
+              Для этого аккаунта включена 2FA. Введите ваш пароль двухфакторной аутентификации.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="twofa_password">Пароль 2FA</Label>
+              <Input
+                id="twofa_password"
+                type="password"
+                placeholder="Введите пароль 2FA"
+                value={formData.twofa_password}
+                onChange={(e) => setFormData({...formData, twofa_password: e.target.value})}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={verify2FA} disabled={loading}>
+              {loading ? "Проверка..." : "Подтвердить 2FA"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Accounts List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {accounts.map((account) => {
