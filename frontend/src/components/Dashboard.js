@@ -174,7 +174,7 @@ const Dashboard = () => {
         {/* Bot Status */}
         <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Статус бота</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.botStatus')}</CardTitle>
             <Bot className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -182,11 +182,11 @@ const Dashboard = () => {
               {StatusIcon && <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />}
               <div>
                 <div className="text-2xl font-bold">
-                  {statusInfo?.text || "Загрузка..."}
+                  {statusInfo?.text || t('common.loading')}
                 </div>
                 {botStatus && (
                   <Badge variant={statusInfo.variant} className="mt-1">
-                    {botStatus.is_running ? "Online" : "Offline"}
+                    {botStatus.is_running ? t('dashboard.online') : t('dashboard.offline')}
                   </Badge>
                 )}
               </div>
@@ -197,7 +197,7 @@ const Dashboard = () => {
         {/* Active Accounts */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Активные аккаунты</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.activeAccounts')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -213,7 +213,7 @@ const Dashboard = () => {
         {/* Today's Responses */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ответов сегодня</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.responsesToday')}</CardTitle>
             <MessageCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -229,7 +229,7 @@ const Dashboard = () => {
         {/* Success Rate */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Успешность</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.successRate')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
