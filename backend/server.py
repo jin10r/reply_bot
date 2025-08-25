@@ -466,6 +466,209 @@ async def get_activity_stats():
         "responses_today": today_logs
     }
 
+
+# ENHANCED MEDIA FILES ENDPOINTS
+@api_router.post("/media/upload")
+async def upload_media_file(
+    file: UploadFile = File(...),
+    tags: str = Form(""),
+    file_type: str = Form("image")
+):
+    """Загрузка медиафайла"""
+    try:
+        # Проверяем тип файла
+        allowed_types = {
+            "image": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+            "sticker": ["image/webp", "application/x-tgsticker"],
+            "audio": ["audio/mpeg", "audio/ogg", "audio/wav"],
+            "video": ["video/mp4", "video/webm", "video/mov"],
+            "document": ["application/pdf", "text/plain"]
+        }
+        
+        if file.content_type not in allowed_types.get(file_type, []):
+            raise HTTPException(status_code=400, detail=f"Unsupported file type for {file_type}")
+        
+        # Генерируем имя файла
+        file_extension = Path(file.filename).suffix
+        new_filename = f"{uuid.uuid4()}{file_extension}"
+        file_path = UPLOADS_DIR / new_filename
+        
+        # Сохраняем файл
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+        
+        file_size = len(content)
+        
+        # Получаем размеры для изображений
+        width, height, duration = None, None, None
+        if file_type == "image":
+            try:
+                with PILImage.open(file_path) as img:
+                    width, height = img.size
+            except Exception as e:
+                logger.warning(f"Could not get image dimensions: {e}")
+        
+        # Создаем запись в БД
+        media_file = MediaFile(
+            filename=new_filename,
+            original_filename=file.filename,
+            file_path=str(file_path),
+            file_size=file_size,
+            mime_type=file.content_type,
+            file_type=file_type,
+            width=width,
+            height=height,
+            duration=duration,
+            tags=tags.split(",") if tags else []
+        )
+        
+        await db.media_files.insert_one(media_file.dict())
+        
+        return APIResponse(
+            success=True,
+            message="File uploaded successfully",
+            data=media_file.dict()
+        )
+        
+    except Exception as e:
+        logger.error(f"Media upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/media", response_model=List[MediaFile])
+async def get_media_files(
+    file_type: Optional[str] = None,
+    tags: Optional[str] = None,
+    limit: int = 50
+):
+    """Получение списка медиафайлов"""
+    query = {"is_active": True}
+    
+    if file_type:
+        query["file_type"] = file_type
+    
+    if tags:
+        tag_list = tags.split(",")
+        query["tags"] = {"$in": tag_list}
+    
+    files = await db.media_files.find(query).limit(limit).to_list(limit)
+    return [MediaFile(**file) for file in files]
+
+
+@api_router.delete("/media/{file_id}")
+async def delete_media_file(file_id: str):
+    """Удаление медиафайла"""
+    try:
+        # Найдем файл
+        file_doc = await db.media_files.find_one({"id": file_id})
+        if not file_doc:
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Удалим файл с диска
+        file_path = Path(file_doc["file_path"])
+        if file_path.exists():
+            file_path.unlink()
+        
+        # Удалим из БД
+        await db.media_files.delete_one({"id": file_id})
+        
+        return APIResponse(success=True, message="File deleted successfully")
+        
+    except Exception as e:
+        logger.error(f"Media delete error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# RULE TEMPLATES ENDPOINTS
+@api_router.get("/templates", response_model=List[RuleTemplate])
+async def get_rule_templates():
+    """Получение шаблонов правил"""
+    templates = await db.rule_templates.find().to_list(100)
+    return [RuleTemplate(**template) for template in templates]
+
+
+@api_router.post("/templates", response_model=RuleTemplate)
+async def create_rule_template(template_data: dict):
+    """Создание шаблона правила"""
+    template = RuleTemplate(
+        name=template_data["name"],
+        template_text=template_data["template_text"],
+        variables=template_data.get("variables", {})
+    )
+    await db.rule_templates.insert_one(template.dict())
+    return template
+
+
+# CALLBACK QUERY ENDPOINTS
+@api_router.post("/callbacks/process")
+async def process_callback_query(callback_data: dict):
+    """Обработка callback запроса от инлайн кнопки"""
+    try:
+        callback = CallbackQuery(
+            callback_data=callback_data["data"],
+            user_id=callback_data["user_id"],
+            chat_id=callback_data["chat_id"],
+            message_id=callback_data["message_id"]
+        )
+        
+        await db.callback_queries.insert_one(callback.dict())
+        
+        # Здесь будет логика обработки callback
+        # userbot_manager.process_callback(callback)
+        
+        return APIResponse(
+            success=True,
+            message="Callback processed",
+            data=callback.dict()
+        )
+        
+    except Exception as e:
+        logger.error(f"Callback processing error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# RULE STATISTICS ENDPOINTS
+@api_router.get("/rules/{rule_id}/stats")
+async def get_rule_statistics(rule_id: str, days: int = 7):
+    """Получение статистики по правилу"""
+    start_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days)
+    
+    stats = await db.rule_statistics.find({
+        "rule_id": rule_id,
+        "date": {"$gte": start_date}
+    }).to_list(days)
+    
+    return [RuleStatistics(**stat) for stat in stats]
+
+
+@api_router.get("/system/notifications")
+async def get_system_notifications():
+    """Получение системных уведомлений"""
+    notifications = await db.system_notifications.find({
+        "is_read": False,
+        "$or": [
+            {"expires_at": None},
+            {"expires_at": {"$gt": datetime.utcnow()}}
+        ]
+    }).sort("created_at", -1).to_list(10)
+    
+    return [SystemNotification(**notif) for notif in notifications]
+
+
+@api_router.put("/system/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str):
+    """Отметить уведомление как прочитанное"""
+    result = await db.system_notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"is_read": True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    
+    return APIResponse(success=True, message="Notification marked as read")
+
 # Include the router in the main app
 app.include_router(api_router)
 
