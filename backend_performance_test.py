@@ -49,16 +49,16 @@ class BackendPerformanceTester:
         start_time = time.time()
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=30)
+                response = requests.get(url, headers=headers, timeout=10)
             elif method == 'POST':
                 if files:
-                    response = requests.post(url, data=data, files=files, timeout=30)
+                    response = requests.post(url, data=data, files=files, timeout=10)
                 else:
-                    response = requests.post(url, json=data, headers=headers, timeout=30)
+                    response = requests.post(url, json=data, headers=headers, timeout=10)
             elif method == 'PUT':
-                response = requests.put(url, json=data, headers=headers, timeout=30)
+                response = requests.put(url, json=data, headers=headers, timeout=10)
             elif method == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=30)
+                response = requests.delete(url, headers=headers, timeout=10)
             else:
                 return None, 0, {}
 
