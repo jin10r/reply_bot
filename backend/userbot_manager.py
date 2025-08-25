@@ -481,3 +481,35 @@ class UserbotManager:
             
             logger.error(f"Failed to verify phone code: {e}")
             raise
+    
+    async def _cleanup_old_verification_clients(self):
+        """Очистка старых клиентов верификации"""
+        try:
+            current_time = datetime.utcnow()
+            expired_verifications = []
+            
+            # Найти истекшие верификации
+            async for verification in self.db.phone_verifications.find({
+                "expires_at": {"$lt": current_time},
+                "is_verified": False
+            }):
+                expired_verifications.append(verification["id"])
+            
+            # Очистить клиенты для истекших верификаций
+            for verification_id in expired_verifications:
+                if verification_id in self._verification_clients:
+                    try:
+                        await self._verification_clients[verification_id].disconnect()
+                    except:
+                        pass
+                    del self._verification_clients[verification_id]
+                    
+            # Удалить истекшие записи из базы данных
+            if expired_verifications:
+                await self.db.phone_verifications.delete_many({
+                    "id": {"$in": expired_verifications}
+                })
+                logger.info(f"Cleaned up {len(expired_verifications)} expired verification clients")
+                
+        except Exception as e:
+            logger.error(f"Error cleaning up verification clients: {e}")
