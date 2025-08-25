@@ -423,95 +423,18 @@ async def delete_rule(rule_id: str):
     
     return APIResponse(success=True, message="Rule deleted")
 
-# IMAGES ENDPOINTS
-@api_router.get("/images", response_model=List[BotImage])
-async def get_images():
-    """Получение всех картинок"""
-    images = await db.bot_images.find().to_list(1000)
-    return [BotImage(**image) for image in images]
-
-@api_router.post("/images/upload")
-async def upload_image(
-    file: UploadFile = File(...),
-    tags: str = Form("")
-):
-    """Загрузка картинки"""
-    # Проверяем тип файла
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/svg+xml"]
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"File type {file.content_type} not allowed"
-        )
-    
-    # Генерируем уникальное имя файла
-    file_extension = file.filename.split('.')[-1].lower()
-    filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = UPLOADS_DIR / filename
-    
-    # Сохраняем файл
-    async with aiofiles.open(file_path, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
-    
-    # Получаем размеры изображения (если не SVG)
-    width, height = None, None
-    if file.content_type != "image/svg+xml":
-        try:
-            with PILImage.open(file_path) as img:
-                width, height = img.size
-        except Exception:
-            pass
-    
-    # Создаем запись в БД
-    image = BotImage(
-        filename=filename,
-        original_filename=file.filename,
-        file_path=str(file_path),
-        file_size=len(content),
-        mime_type=file.content_type,
-        width=width,
-        height=height,
-        tags=tags.split(',') if tags else []
-    )
-    
-    await db.bot_images.insert_one(image.dict())
-    return image
-
-@api_router.get("/images/{image_id}", response_model=BotImage)
-async def get_image(image_id: str):
-    """Получение картинки по ID"""
-    image = await db.bot_images.find_one({"id": image_id})
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found")
-    return BotImage(**image)
-
-@api_router.delete("/images/{image_id}")
-async def delete_image(image_id: str):
-    """Удаление картинки"""
-    image = await db.bot_images.find_one({"id": image_id})
-    if not image:
-        raise HTTPException(status_code=404, detail="Image not found")
-    
-    # Удаляем файл
-    try:
-        os.remove(image["file_path"])
-    except OSError:
-        pass
-    
-    # Удаляем запись из БД
-    await db.bot_images.delete_one({"id": image_id})
-    
-    return APIResponse(success=True, message="Image deleted")
-
 # ACTIVITY LOGS ENDPOINTS
 @api_router.get("/logs", response_model=List[BotActivityLog])
+@cache_response(ttl_seconds=60)  # Cache for 1 minute
+@handle_errors
 async def get_activity_logs(limit: int = 100, skip: int = 0):
     """Получение логов активности"""
     logs = await db.bot_activity_logs.find().sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
     return [BotActivityLog(**log) for log in logs]
 
 @api_router.get("/logs/stats")
+@cache_response(ttl_seconds=300)  # Cache for 5 minutes
+@handle_errors
 async def get_activity_stats():
     """Получение статистики активности"""
     total_logs = await db.bot_activity_logs.count_documents({})
