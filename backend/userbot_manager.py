@@ -148,31 +148,25 @@ class UserbotManager:
         except Exception as e:
             logger.error(f"Error processing message: {e}")
     
-    async def find_enhanced_matching_rule(self, message: Message, rules: List[AutoReplyRule]) -> Optional[AutoReplyRule]:
-        """Поиск подходящего правила с расширенными условиями"""
+    async def find_matching_rule(self, message: Message, rules: List[AutoReplyRule], use_enhanced: bool = True) -> Optional[AutoReplyRule]:
+        """Поиск подходящего правила с возможностью использования расширенных или базовых условий"""
         # Сортируем правила по приоритету
         sorted_rules = sorted(rules, key=lambda x: x.priority, reverse=True)
         
         for rule in sorted_rules:
-            # Используем расширенную проверку условий
-            if await self.check_enhanced_rule_conditions(message, rule):
+            # Выбираем метод проверки условий
+            condition_check = (
+                self.check_enhanced_rule_conditions if use_enhanced 
+                else self.check_basic_rule_conditions
+            )
+            
+            if await condition_check(message, rule):
                 return rule
                 
         return None
     
-    async def find_matching_rule(self, message: Message, rules: List[AutoReplyRule]) -> Optional[AutoReplyRule]:
-        """Поиск подходящего правила для срабатывания"""
-        # Сортируем правила по приоритету
-        sorted_rules = sorted(rules, key=lambda x: x.priority, reverse=True)
-        
-        for rule in sorted_rules:
-            if await self.check_rule_conditions(message, rule):
-                return rule
-                
-        return None
-    
-    async def check_rule_conditions(self, message: Message, rule: AutoReplyRule) -> bool:
-        """Проверка условий правила"""
+    async def check_basic_rule_conditions(self, message: Message, rule: AutoReplyRule) -> bool:
+        """Базовая проверка условий правила (для обратной совместимости)"""
         for condition in rule.conditions:
             if not condition.is_active:
                 continue
@@ -182,19 +176,19 @@ class UserbotManager:
                 
             elif condition.condition_type == "chat_type":
                 chat_type = "private" if message.chat.type.name == "PRIVATE" else message.chat.type.name.lower()
-                if chat_type != condition.value:
+                if hasattr(condition, 'value') and chat_type != condition.value:
                     return False
                     
             elif condition.condition_type == "user_id":
-                if str(message.from_user.id) != condition.value:
+                if hasattr(condition, 'value') and str(message.from_user.id) != condition.value:
                     return False
                     
             elif condition.condition_type == "username":
-                if not message.from_user.username or message.from_user.username != condition.value:
+                if hasattr(condition, 'value') and (not message.from_user.username or message.from_user.username != condition.value):
                     return False
                     
             elif condition.condition_type == "keyword":
-                if not message.text or condition.value.lower() not in message.text.lower():
+                if hasattr(condition, 'value') and (not message.text or condition.value.lower() not in message.text.lower()):
                     return False
                     
         return True
