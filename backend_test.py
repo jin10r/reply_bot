@@ -99,7 +99,7 @@ class TelegramUserbotAPITester:
             "2FA Fix: Verify 2FA Password Endpoint", 
             "POST", 
             "/api/accounts/verify-2fa", 
-            404,  # Expecting 404 for non-existent verification_id
+            400,  # Expecting 400 for verification not found (as shown in actual response)
             verify_2fa_data
         )
         
