@@ -126,6 +126,18 @@
         -agent: "testing"
         -comment: "✅ TELEGRAM AUTHORIZATION TESTING COMPLETED! Comprehensive testing of PHONE_CODE_EXPIRED fixes shows all improvements are working correctly: 1) Session management properly handles concurrent requests and maintains client isolation 2) Error handling provides clear, user-friendly messages for invalid API credentials, phone numbers, and verification codes 3) Code cleaning functionality works perfectly - spaces, dashes, and extra whitespace are properly removed 4) Verification flow handles non-existent IDs correctly 5) Extended timeout structure is in place (10-minute expiry vs previous 5-minute) 6) Client cleanup and reuse via _verification_clients dictionary is functioning 7) All API endpoints (/api/accounts/send-code, /api/accounts/verify-code, /api/accounts) are working properly. Backend test results: 81.8% success rate with 27/33 tests passing. The PHONE_CODE_EXPIRED issue has been successfully resolved!"
 
+  - task: "2FA (Two-Factor Authentication) implementation for Telegram authorization"
+    implemented: true
+    working: "NA"
+    file: "server.py, userbot_manager.py, models.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Implemented 2FA flow for Telegram account authorization. Key changes: 1) Updated PhoneVerification model with requires_2fa and code_verified fields 2) Modified verify_phone_code method to catch SessionPasswordNeeded and return '2FA_REQUIRED' instead of error 3) Added new verify_2fa_password method in UserbotManager 4) Updated /accounts/verify-code endpoint to handle 2FA response 5) Added new /accounts/verify-2fa endpoint. The 2FA flow now works as: send code → verify code → if 2FA needed, prompt for 2FA password → complete auth. System should no longer show 'Please disable 2FA' error message."
+
 ## frontend:
   - task: "Telegram-inspired UI redesign"
     implemented: true  
