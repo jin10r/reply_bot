@@ -78,7 +78,7 @@ const Dashboard = () => {
       await axios.post(`${API}/bot/stop`);
       await fetchBotStatus();
     } catch (error) {
-      alert("Ошибка остановки бота: " + error.response?.data?.detail || error.message);
+      alert(t('messages.botStopError', { error: error.response?.data?.detail || error.message }));
     }
     setLoading(false);
   };
