@@ -456,12 +456,13 @@ async def get_activity_stats():
 
 # ENHANCED MEDIA FILES ENDPOINTS
 @api_router.post("/media/upload")
+@handle_errors
 async def upload_media_file(
     file: UploadFile = File(...),
     tags: str = Form(""),
     file_type: str = Form("image")
 ):
-    """Загрузка медиафайла"""
+    """Загрузка медиафайла с улучшенной обработкой"""
     try:
         # Проверяем тип файла
         allowed_types = {
@@ -480,12 +481,13 @@ async def upload_media_file(
         new_filename = f"{uuid.uuid4()}{file_extension}"
         file_path = UPLOADS_DIR / new_filename
         
-        # Сохраняем файл
+        # Сохраняем файл чанками для больших файлов
+        file_size = 0
         async with aiofiles.open(file_path, 'wb') as f:
-            content = await file.read()
-            await f.write(content)
-        
-        file_size = len(content)
+            chunk_size = 8192  # 8KB chunks
+            while content := await file.read(chunk_size):
+                await f.write(content)
+                file_size += len(content)
         
         # Получаем размеры для изображений
         width, height, duration = None, None, None
@@ -512,24 +514,34 @@ async def upload_media_file(
         
         await db.media_files.insert_one(media_file.dict())
         
+        # Clear related cache entries
+        cache_keys_to_clear = [k for k in _cache.keys() if 'get_media_files' in k]
+        for key in cache_keys_to_clear:
+            _cache.pop(key, None)
+            _cache_ttl.pop(key, None)
+        
         return APIResponse(
             success=True,
             message="File uploaded successfully",
             data=media_file.dict()
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Media upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @api_router.get("/media", response_model=List[MediaFile])
+@cache_response(ttl_seconds=120)  # Cache for 2 minutes
+@handle_errors
 async def get_media_files(
     file_type: Optional[str] = None,
     tags: Optional[str] = None,
     limit: int = 50
 ):
-    """Получение списка медиафайлов"""
+    """Получение списка медиафайлов с кэшированием"""
     query = {"is_active": True}
     
     if file_type:
@@ -544,38 +556,43 @@ async def get_media_files(
 
 
 @api_router.delete("/media/{file_id}")
+@handle_errors
 async def delete_media_file(file_id: str):
-    """Удаление медиафайла"""
-    try:
-        # Найдем файл
-        file_doc = await db.media_files.find_one({"id": file_id})
-        if not file_doc:
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        # Удалим файл с диска
-        file_path = Path(file_doc["file_path"])
-        if file_path.exists():
-            file_path.unlink()
-        
-        # Удалим из БД
-        await db.media_files.delete_one({"id": file_id})
-        
-        return APIResponse(success=True, message="File deleted successfully")
-        
-    except Exception as e:
-        logger.error(f"Media delete error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Удаление медиафайла с очисткой кэша"""
+    # Найдем файл
+    file_doc = await db.media_files.find_one({"id": file_id})
+    if not file_doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Удалим файл с диска
+    file_path = Path(file_doc["file_path"])
+    if file_path.exists():
+        file_path.unlink()
+    
+    # Удалим из БД
+    await db.media_files.delete_one({"id": file_id})
+    
+    # Clear related cache entries
+    cache_keys_to_clear = [k for k in _cache.keys() if 'get_media_files' in k]
+    for key in cache_keys_to_clear:
+        _cache.pop(key, None)
+        _cache_ttl.pop(key, None)
+    
+    return APIResponse(success=True, message="File deleted successfully")
 
 
 # RULE TEMPLATES ENDPOINTS
 @api_router.get("/templates", response_model=List[RuleTemplate])
+@cache_response(ttl_seconds=600)  # Cache for 10 minutes
+@handle_errors
 async def get_rule_templates():
-    """Получение шаблонов правил"""
+    """Получение шаблонов правил с кэшированием"""
     templates = await db.rule_templates.find().to_list(100)
     return [RuleTemplate(**template) for template in templates]
 
 
 @api_router.post("/templates", response_model=RuleTemplate)
+@handle_errors
 async def create_rule_template(template_data: dict):
     """Создание шаблона правила"""
     template = RuleTemplate(
