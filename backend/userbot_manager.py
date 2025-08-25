@@ -293,11 +293,7 @@ class UserbotManager:
             {"$set": update_data}
         )
     
-    async def get_bot_settings(self) -> Optional[BotSettings]:
-        """Получение настроек бота"""
-        settings_data = await self.db.bot_settings.find_one()
-        return BotSettings(**settings_data) if settings_data else None
-    
+
     async def update_bot_status(self, status: BotStatus):
         """Обновление статуса бота"""
         await self.db.bot_settings.update_one(
