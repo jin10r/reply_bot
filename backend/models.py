@@ -180,6 +180,7 @@ class PhoneVerification(BaseModel):
     is_verified: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime
+    verified_at: Optional[datetime] = None
 
 
 class PhoneVerificationCode(BaseModel):
