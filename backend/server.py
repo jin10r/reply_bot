@@ -19,7 +19,7 @@ from models import (
     AutoReplyRule, AutoReplyRuleCreate, AutoReplyRuleUpdate,
     BotImage, BotImageCreate, BotSettings, BotSettingsUpdate,
     BotActivityLog, PhoneVerification, PhoneVerificationCode,
-    APIResponse, StatusCheck, StatusCheckCreate,
+    TwoFactorAuth, APIResponse, StatusCheck, StatusCheckCreate,
     AccountStatus, BotStatus
 )
 from userbot_manager import UserbotManager
