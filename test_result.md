@@ -303,9 +303,12 @@
 
 ## test_plan:
   current_focus:
-    - "Enhanced Rules UI functionality testing - READY FOR TESTING"
-    - "MediaManager upload and file management testing - READY FOR TESTING"
-    - "Backend enhanced API comprehensive testing - COMPLETED"
+    - "Unified Rules component functionality testing - READY FOR TESTING"
+    - "Unified Media Manager upload and management testing - READY FOR TESTING"  
+    - "Dashboard Quick Actions navigation testing - READY FOR TESTING"
+    - "Multilingual support (Russian/English) testing - READY FOR TESTING"
+    - "Image upload to local storage and rule integration testing - READY FOR TESTING"
+    - "Inline button creation and callback functionality testing - READY FOR TESTING"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
