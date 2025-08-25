@@ -40,7 +40,7 @@ const ThemeProvider = ({ children }) => {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      {React.cloneElement(children, { darkMode, setDarkMode })}
+      {children({ darkMode, setDarkMode })}
     </div>
   );
 };
