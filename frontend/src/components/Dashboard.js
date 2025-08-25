@@ -287,7 +287,7 @@ const Dashboard = () => {
           {/* Daily Limit */}
           <Card>
             <CardHeader>
-              <CardTitle>Дневной лимит</CardTitle>
+              <CardTitle>{t('dashboard.dailyLimit')}</CardTitle>
               <CardDescription>
                 Контроль количества ответов в день
               </CardDescription>
@@ -296,7 +296,7 @@ const Dashboard = () => {
               {botStatus && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Использовано</span>
+                    <span className="text-sm text-muted-foreground">{t('dashboard.used')}</span>
                     <span className="font-medium">
                       {botStatus.daily_response_count} из {botStatus.max_daily_responses}
                     </span>
