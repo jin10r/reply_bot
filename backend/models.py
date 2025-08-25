@@ -51,18 +51,82 @@ class TelegramAccountUpdate(BaseModel):
     error_message: Optional[str] = None
 
 
-# Auto Reply Rules Models
+# Auto Reply Rules Models - Enhanced Version
+class ChatFilter(BaseModel):
+    """Фильтры для выбора чатов"""
+    chat_types: List[str] = []  # "private", "group", "supergroup", "channel"
+    whitelist_chats: List[str] = []  # ID конкретных чатов (включить)
+    blacklist_chats: List[str] = []  # ID конкретных чатов (исключить)
+    chat_title_contains: Optional[str] = None  # фильтр по названию
+    min_members: Optional[int] = None  # минимум участников
+    max_members: Optional[int] = None  # максимум участников
+
+
+class InlineButton(BaseModel):
+    """Инлайн кнопка"""
+    text: str  # текст кнопки
+    button_type: str  # "url", "callback"
+    url: Optional[str] = None  # для URL кнопок
+    callback_data: Optional[str] = None  # для callback кнопок
+    callback_action: Optional[str] = None  # "send_sticker", "send_emoji", "send_text", "send_image"
+    callback_content: Optional[str] = None  # контент для отправки при callback
+
+
+class MediaContent(BaseModel):
+    """Медиа контент"""
+    content_type: str  # "image", "sticker", "emoji", "text"
+    file_id: Optional[str] = None  # ID файла для стикеров/картинок
+    file_path: Optional[str] = None  # путь к загруженному файлу
+    text_content: Optional[str] = None  # текстовое содержимое
+    caption: Optional[str] = None  # подпись для картинок
+    emoji: Optional[str] = None  # эмодзи для реакций
+
+
 class ReplyCondition(BaseModel):
-    condition_type: str  # "chat_type", "user_id", "username", "keyword", "all"
-    value: Optional[str] = None  # значение для сравнения
+    """Расширенные условия срабатывания"""
+    condition_type: str  # "chat_filter", "user_filter", "message_filter", "time_filter", "all"
+    chat_filter: Optional[ChatFilter] = None
+    user_ids: List[str] = []  # конкретные пользователи
+    usernames: List[str] = []  # пользователи по username
+    keywords: List[str] = []  # ключевые слова в сообщении
+    message_types: List[str] = []  # "text", "photo", "video", "document", etc.
+    time_ranges: List[Dict[str, Any]] = []  # расписание работы
     is_active: bool = True
 
 
 class ReplyAction(BaseModel):
-    action_type: str  # "send_image", "send_text", "send_both"
-    image_ids: List[str] = []  # ID картинок для отправки
-    text_message: Optional[str] = None
-    delay_seconds: int = 0  # задержка перед отправкой
+    """Расширенные действия автоответа"""
+    action_type: str  # "send_content", "add_reaction", "combined"
+    
+    # Основной контент
+    media_contents: List[MediaContent] = []  # список медиа для отправки
+    
+    # Инлайн кнопки
+    inline_buttons: List[List[InlineButton]] = []  # ряды кнопок
+    
+    # Реакции
+    reactions: List[str] = []  # эмодзи для реакций
+    
+    # Настройки
+    delay_seconds: int = 0
+    delete_after_seconds: Optional[int] = None  # автоудаление через время
+    reply_to_message: bool = False  # отвечать на сообщение или просто отправить
+
+
+class RuleTemplate(BaseModel):
+    """Шаблон для правил с переменными"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    template_text: str  # текст с переменными: {user_name}, {chat_title}, {time}, etc.
+    variables: Dict[str, str] = {}  # дополнительные переменные
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ConditionalRule(BaseModel):
+    """Условное правило (если-то-иначе)"""
+    condition: ReplyCondition
+    if_action: ReplyAction
+    else_action: Optional[ReplyAction] = None
 
 
 class AutoReplyRule(BaseModel):
