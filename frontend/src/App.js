@@ -55,7 +55,7 @@ const Navigation = ({ darkMode, setDarkMode }) => {
     { path: "/rules", label: "Правила", icon: Zap, description: "Автоответы" },
     { path: "/images", label: "Картинки", icon: Image, description: "Медиафайлы" },
     { path: "/logs", label: "Логи", icon: FileText, description: "История активности" },
-    { path: "/settings", label: "Настройки", icon: Settings, description: "Конфигурация" }
+    { path: "/settings", label: "Настройки", icon: SettingsIcon, description: "Конфигурация" }
   ];
 
   return (
