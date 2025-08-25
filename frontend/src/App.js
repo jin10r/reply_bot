@@ -196,24 +196,26 @@ const Layout = ({ children, darkMode, setDarkMode }) => {
 
 function App() {
   return (
-    <ThemeProvider>
-      {({ darkMode, setDarkMode }) => (
-        <div className="App">
-          <BrowserRouter>
-            <Layout darkMode={darkMode} setDarkMode={setDarkMode}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/accounts" element={<Accounts />} />
-                <Route path="/rules" element={<UnifiedRules />} />
-                <Route path="/media" element={<UnifiedMediaManager />} />
-                <Route path="/logs" element={<Logs />} />
-                <Route path="/settings" element={<Settings />} />
-              </Routes>
-            </Layout>
-          </BrowserRouter>
-        </div>
-      )}
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        {({ darkMode, setDarkMode }) => (
+          <div className="App">
+            <BrowserRouter>
+              <Layout darkMode={darkMode} setDarkMode={setDarkMode}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/rules" element={<UnifiedRules />} />
+                  <Route path="/media" element={<UnifiedMediaManager />} />
+                  <Route path="/logs" element={<Logs />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Routes>
+              </Layout>
+            </BrowserRouter>
+          </div>
+        )}
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }
 
