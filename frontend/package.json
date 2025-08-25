@@ -83,5 +83,5 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@4.1.1+sha512.12dc0342a4e771ad57b26c7193f227b3fea5323f41af1a40bf9da65dd61f3f482b6cf5c4087b1b9a8c3b4b3e55c2b6cba4a36296df8b0c5a9ad2b9c5b9c1"
 }
