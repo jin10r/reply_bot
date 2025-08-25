@@ -1,6 +1,7 @@
 import asyncio
 import os
 import logging
+import uuid
 from typing import Dict, Optional, List
 from pyrogram import Client, filters
 from pyrogram.types import Message
