@@ -143,6 +143,45 @@ async def verify_code(verification_data: PhoneVerificationCode):
         logger.error(f"Verify code error: {e}")
         raise HTTPException(status_code=400, detail=f"Ошибка верификации: {error_message}")
 
+@api_router.post("/accounts/verify-2fa")
+async def verify_2fa(tfa_data: TwoFactorAuth):
+    """Верификация 2FA пароля и создание аккаунта"""
+    try:
+        session_string = await userbot_manager.verify_2fa_password(
+            tfa_data.verification_id, tfa_data.password
+        )
+        
+        # Получаем данные верификации
+        verification_doc = await db.phone_verifications.find_one(
+            {"id": tfa_data.verification_id}
+        )
+        if not verification_doc:
+            raise HTTPException(status_code=404, detail="Verification not found")
+        
+        verification = PhoneVerification(**verification_doc)
+        
+        # Создаем аккаунт
+        account = TelegramAccount(
+            phone=verification.phone,
+            api_id=verification.api_id,
+            api_hash=verification.api_hash,
+            session_string=session_string,
+            status=AccountStatus.DISCONNECTED
+        )
+        
+        await db.telegram_accounts.insert_one(account.dict())
+        
+        return APIResponse(
+            success=True,
+            message="Account created successfully with 2FA! You can now use your Telegram bot.",
+            data=account.dict()
+        )
+        
+    except Exception as e:
+        error_message = str(e)
+        logger.error(f"Verify 2FA error: {e}")
+        raise HTTPException(status_code=400, detail=f"Ошибка 2FA верификации: {error_message}")
+
 @api_router.get("/accounts", response_model=List[TelegramAccount])
 async def get_accounts():
     """Получение всех аккаунтов"""
