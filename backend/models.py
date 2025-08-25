@@ -178,6 +178,8 @@ class PhoneVerification(BaseModel):
     api_hash: str
     phone_code_hash: Optional[str] = None
     is_verified: bool = False
+    requires_2fa: bool = False  # Track if 2FA is required
+    code_verified: bool = False  # Track if phone code was verified successfully
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime
     verified_at: Optional[datetime] = None
@@ -186,6 +188,11 @@ class PhoneVerification(BaseModel):
 class PhoneVerificationCode(BaseModel):
     verification_id: str
     code: str
+
+
+class TwoFactorAuth(BaseModel):
+    verification_id: str
+    password: str
 
 
 # API Response Models
