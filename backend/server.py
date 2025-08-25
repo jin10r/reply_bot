@@ -20,7 +20,10 @@ from models import (
     BotImage, BotImageCreate, BotSettings, BotSettingsUpdate,
     BotActivityLog, PhoneVerification, PhoneVerificationCode,
     TwoFactorAuth, APIResponse, StatusCheck, StatusCheckCreate,
-    AccountStatus, BotStatus
+    AccountStatus, BotStatus, MediaFile, MediaFileCreate,
+    CallbackQuery, RuleTemplate, RuleStatistics, SystemNotification,
+    ReplyCondition, ReplyAction, ChatFilter, InlineButton, MediaContent,
+    ConditionalRule
 )
 from userbot_manager import UserbotManager
 
