@@ -95,11 +95,22 @@ async def send_verification_code(account_data: TelegramAccountCreate):
 
 @api_router.post("/accounts/verify-code")
 async def verify_code(verification_data: PhoneVerificationCode):
-    """Верификация кода и создание аккаунта"""
+    """Верификация кода и создание аккаунта или запрос 2FA"""
     try:
         session_string = await userbot_manager.verify_phone_code(
             verification_data.verification_id, verification_data.code
         )
+        
+        # Проверяем если требуется 2FA
+        if session_string == "2FA_REQUIRED":
+            return APIResponse(
+                success=True,
+                message="Phone code verified. Please enter your Two-Factor Authentication password.",
+                data={
+                    "requires_2fa": True,
+                    "verification_id": verification_data.verification_id
+                }
+            )
         
         # Получаем данные верификации
         verification_doc = await db.phone_verifications.find_one(
