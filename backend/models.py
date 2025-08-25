@@ -307,3 +307,73 @@ class StatusCheck(BaseModel):
 
 class StatusCheckCreate(BaseModel):
     client_name: str
+
+
+# Extended Models for Enhanced Rule System
+
+class MediaFile(BaseModel):
+    """Расширенная модель для медиафайлов"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    filename: str
+    original_filename: str
+    file_path: str
+    file_size: int
+    mime_type: str
+    file_type: str  # "image", "sticker", "audio", "video", "document"
+    width: Optional[int] = None
+    height: Optional[int] = None
+    duration: Optional[int] = None  # для аудио/видео
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_by: Optional[str] = None  # ID пользователя
+    tags: List[str] = []
+    is_active: bool = True
+    usage_count: int = 0
+
+
+class MediaFileCreate(BaseModel):
+    filename: str
+    original_filename: str
+    file_path: str
+    file_size: int
+    mime_type: str
+    file_type: str
+    width: Optional[int] = None
+    height: Optional[int] = None
+    duration: Optional[int] = None
+    tags: List[str] = []
+
+
+class CallbackQuery(BaseModel):
+    """Обработка callback запросов от инлайн кнопок"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    callback_data: str
+    user_id: str
+    chat_id: str
+    message_id: int
+    rule_id: Optional[str] = None
+    processed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: Optional[datetime] = None
+
+
+class RuleStatistics(BaseModel):
+    """Статистика работы правил"""
+    rule_id: str
+    date: datetime
+    triggers_count: int = 0
+    success_count: int = 0
+    error_count: int = 0
+    avg_response_time: float = 0.0
+    most_active_chat: Optional[str] = None
+    most_active_user: Optional[str] = None
+
+
+class SystemNotification(BaseModel):
+    """Системные уведомления"""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    type: str  # "info", "warning", "error", "success"
+    title: str
+    message: str
+    is_read: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: Optional[datetime] = None
