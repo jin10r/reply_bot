@@ -434,11 +434,18 @@ class UserbotManager:
                 logger.info(f"Successfully signed in user: {signed_in.user.phone_number}")
                 
             except SessionPasswordNeeded:
-                # Если требуется 2FA пароль
-                await client.disconnect()
-                if verification_id in self._verification_clients:
-                    del self._verification_clients[verification_id]
-                raise ValueError("Two-factor authentication detected. Please disable 2FA temporarily or contact support.")
+                # Если требуется 2FA пароль - не отключаем клиент, оставляем для 2FA
+                # Обновляем статус верификации - код верифицирован, но нужен 2FA
+                await self.db.phone_verifications.update_one(
+                    {"id": verification_id},
+                    {"$set": {
+                        "code_verified": True, 
+                        "requires_2fa": True,
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
+                # Возвращаем специальный код, указывающий на необходимость 2FA
+                return "2FA_REQUIRED"
             except Exception as auth_error:
                 # Улучшенная обработка ошибок аутентификации
                 error_msg = str(auth_error).lower()
