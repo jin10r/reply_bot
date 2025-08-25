@@ -181,9 +181,10 @@ class TelegramUserbotAPITester:
         # Verify this is a validation error, not an attribute error
         if response_data and isinstance(response_data, dict):
             detail = response_data.get('detail', '')
-            if "'user' object has no attribute" in detail.lower():
+            detail_str = str(detail).lower()
+            if "'user' object has no attribute" in detail_str:
                 self.log_test("2FA Fix: Attribute Error with Missing Field", False, f"Attribute error: {detail}")
-            elif 'field required' in str(detail).lower() or 'validation error' in str(detail).lower():
+            elif 'field required' in detail_str or 'validation error' in detail_str:
                 self.log_test("2FA Fix: Proper Validation Error", True, "Correct validation error for missing field")
             else:
                 self.log_test("2FA Fix: Unexpected Error Type", True, f"Different error type (acceptable): {detail}")
