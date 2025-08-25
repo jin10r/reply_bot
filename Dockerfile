@@ -7,11 +7,8 @@ WORKDIR /app/frontend
 # Copy package.json first
 COPY frontend/package.json ./
 
-# Copy yarn.lock if it exists, otherwise it will be generated
-COPY frontend/yarn.loc* ./
-
 # Install dependencies (this will generate yarn.lock if it doesn't exist)
-RUN yarn install --frozen-lockfile || yarn install
+RUN yarn install
 
 # Copy frontend source
 COPY frontend/ ./
