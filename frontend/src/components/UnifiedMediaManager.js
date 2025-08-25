@@ -292,34 +292,6 @@ const UnifiedMediaManager = () => {
     }
   };
 
-  const getFileTypeIcon = (fileType) => {
-    switch (fileType) {
-      case "image":
-        return <Image className="w-5 h-5" />;
-      case "sticker":
-        return <FileImage className="w-5 h-5" />;
-      default:
-        return <FileImage className="w-5 h-5" />;
-    }
-  };
-
-  const getFileTypeColor = (fileType) => {
-    switch (fileType) {
-      case "image":
-        return "bg-blue-500";
-      case "sticker":
-        return "bg-purple-500";
-      case "audio":
-        return "bg-green-500";
-      case "video":
-        return "bg-red-500";
-      case "document":
-        return "bg-gray-500";
-      default:
-        return "bg-gray-400";
-    }
-  };
-
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
