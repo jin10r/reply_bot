@@ -54,9 +54,7 @@ const Navigation = ({ darkMode, setDarkMode }) => {
   const navItems = [
     { path: "/", label: "Dashboard", icon: Home, description: "Главная панель" },
     { path: "/accounts", label: "Аккаунты", icon: Users, description: "Управление аккаунтами" },
-    { path: "/rules", label: "Правила", icon: Zap, description: "Базовые автоответы" },
-    { path: "/enhanced-rules", label: "Расширенные правила", icon: Layers, description: "Гибкие правила с контентом" },
-    { path: "/images", label: "Картинки", icon: Image, description: "Старая система файлов" },
+    { path: "/rules", label: "Правила", icon: Zap, description: "Автоответы и гибкие правила" },
     { path: "/media", label: "Медиафайлы", icon: Upload, description: "Управление медиафайлами" },
     { path: "/logs", label: "Логи", icon: FileText, description: "История активности" },
     { path: "/settings", label: "Настройки", icon: SettingsIcon, description: "Конфигурация" }
